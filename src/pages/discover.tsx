@@ -97,7 +97,7 @@ export function DiscoverPage(): JSXElement {
               number={data.heroNumber}
               title={data.heroTitle}
               subtitle={data.heroSubtitle}
-              kicker={data.mode === 'type-lab' ? 'Attune every matchup.' : 'Find the next legend.'}
+              kicker="Find the next legend."
             />
             <SearchBar
               value={searchDraft}
@@ -124,7 +124,7 @@ export function DiscoverPage(): JSXElement {
 
           <FeaturedPanel
             pokemon={featuredPokemon()}
-            label={data.mode === 'type-lab' ? 'Element focus' : 'Featured discovery'}
+            label="Featured discovery"
             onExplore={() => {
               const pokemon = featuredPokemon()
               rememberCardTransition(pokemon.slug, pokemon.accent)

@@ -18,11 +18,6 @@ export const appRoutes = [
     load={async () => loadDiscoverData('discover')}
   />,
   <Route
-    path="/type-lab"
-    component={DiscoverPage}
-    load={async () => loadDiscoverData('type-lab')}
-  />,
-  <Route
     path="/pokemon/:slug"
     component={DetailPage}
     load={async (params) => loadPokemonDetail(params.slug)}

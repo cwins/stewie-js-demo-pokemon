@@ -67,7 +67,6 @@ export function TopNav(): JSXElement {
           <NavLink to="/discover" label="Discover" />
           <NavLink to={detailPath()} label="Detail" />
           <NavLink to={speciesPath()} label="Species" />
-          <NavLink to="/type-lab" label="Type Lab" />
         </nav>
 
         <div class="top-nav__actions">
@@ -84,7 +83,6 @@ export function TopNav(): JSXElement {
           <NavLink to="/discover" label="Discover" />
           <NavLink to={detailPath()} label="Detail" />
           <NavLink to={speciesPath()} label="Species" />
-          <NavLink to="/type-lab" label="Type Lab" />
         </div>
       </Show>
     </header>

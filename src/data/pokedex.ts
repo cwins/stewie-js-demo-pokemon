@@ -83,7 +83,7 @@ export interface SpeciesModel {
 }
 
 export interface DiscoverPageData {
-  mode: 'discover' | 'type-lab'
+  mode: 'discover'
   heroNumber: string
   heroTitle: string
   heroSubtitle: string
@@ -626,15 +626,13 @@ const EXPLORE: ExploreModule[] = [
 
 const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
-export async function loadDiscoverData(mode: 'discover' | 'type-lab' = 'discover'): Promise<DiscoverPageData> {
+export async function loadDiscoverData(mode: 'discover' = 'discover'): Promise<DiscoverPageData> {
   return {
     mode,
-    heroNumber: mode === 'type-lab' ? '04' : '01',
-    heroTitle: mode === 'type-lab' ? 'Type Lab' : 'Discover',
-    heroSubtitle: mode === 'type-lab'
-      ? 'Tune elemental matchups. Shape your next route.'
-      : 'Find. Challenge. Be legendary.',
-    featuredSlug: mode === 'type-lab' ? 'charizard' : 'pikachu',
+    heroNumber: '01',
+    heroTitle: 'Discover',
+    heroSubtitle: 'Find. Challenge. Be legendary.',
+    featuredSlug: 'pikachu',
     quests: QUESTS,
     explore: EXPLORE,
     pokemon: POKEMON,
