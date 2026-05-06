@@ -56,10 +56,10 @@ export function TopNav(): JSXElement {
           onClick={() => void router.navigate('/discover')}
           aria-label="Open Discover page"
         >
-          <span class="top-nav__brand-mark">✦</span>
+          <span class="top-nav__brand-mark">JS</span>
           <span class="top-nav__brand-copy">
-            <strong>Stewie Dex</strong>
-            <small>Magical field guide</small>
+            <strong>Stewie-JS Demo</strong>
+            <small>Pokedex showcase</small>
           </span>
         </button>
 

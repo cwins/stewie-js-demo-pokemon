@@ -72,14 +72,16 @@ export function SearchBar(props: {
 }): JSXElement {
   return (
     <div class="search-bar">
-      <span class="search-bar__icon" aria-hidden="true">⌕</span>
-      <input
-        class="search-bar__input"
-        type="search"
-        placeholder="Search Pokemon, types, abilities..."
-        value={() => props.value()}
-        onInput={(event: Event) => props.onInput((event.currentTarget as HTMLInputElement).value)}
-      />
+      <div class="search-bar__field">
+        <span class="search-bar__icon" aria-hidden="true">⌕</span>
+        <input
+          class="search-bar__input"
+          type="search"
+          placeholder="Search Pokemon, types, abilities..."
+          value={() => props.value()}
+          onInput={(event: Event) => props.onInput((event.currentTarget as HTMLInputElement).value)}
+        />
+      </div>
       <button class="search-bar__button" onClick={props.onAction}>Search</button>
     </div>
   )
@@ -136,7 +138,7 @@ export function QuestCardItem({ quest }: { quest: QuestCard }): JSXElement {
   return (
     <article class="quest-card" style={`--accent:${quest.accent};`}>
       <div class="quest-card__head">
-        <span class="quest-card__spark" aria-hidden="true">✦</span>
+        <span class="quest-card__spark" aria-hidden="true">{quest.icon}</span>
         <div>
           <h3>{quest.title}</h3>
           <p>{quest.subtitle}</p>

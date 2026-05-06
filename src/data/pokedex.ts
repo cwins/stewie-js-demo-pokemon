@@ -11,6 +11,7 @@ export interface QuestCard {
   id: string
   title: string
   subtitle: string
+  icon: string
   progress: number
   total: number
   accent: string
@@ -96,7 +97,7 @@ const artwork = (id: number): string =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
 
 export const TYPE_OPTIONS: TypeOption[] = [
-  { value: 'all', label: 'All', icon: '✦' },
+  { value: 'all', label: 'All', icon: '◎' },
   { value: 'fire', label: 'Fire', icon: '✹' },
   { value: 'water', label: 'Water', icon: '💧' },
   { value: 'grass', label: 'Grass', icon: '❋' },
@@ -610,10 +611,10 @@ const SPECIES: SpeciesModel[] = [
 ]
 
 const QUESTS: QuestCard[] = [
-  { id: 'electric-quest', title: 'Catch 15 Electric Type', subtitle: 'Static hunt', progress: 9, total: 15, accent: '#f4c542' },
-  { id: 'gym-battles', title: 'Win 3 Gym Battles', subtitle: 'Arena push', progress: 2, total: 3, accent: '#63b96a' },
-  { id: 'water-log', title: 'Discover 10 Water Type', subtitle: 'Tidal scouting', progress: 6, total: 10, accent: '#5bc7f6' },
-  { id: 'boss-run', title: 'Defeat a Team Star Boss', subtitle: 'Night raid', progress: 0, total: 1, accent: '#8a837b' },
+  { id: 'electric-quest', title: 'Catch 15 Electric Type', subtitle: 'Static hunt', icon: 'EL', progress: 9, total: 15, accent: '#f4c542' },
+  { id: 'gym-battles', title: 'Win 3 Gym Battles', subtitle: 'Arena push', icon: 'GY', progress: 2, total: 3, accent: '#63b96a' },
+  { id: 'water-log', title: 'Discover 10 Water Type', subtitle: 'Tidal scouting', icon: 'WT', progress: 6, total: 10, accent: '#5bc7f6' },
+  { id: 'boss-run', title: 'Defeat a Team Star Boss', subtitle: 'Night raid', icon: 'TS', progress: 0, total: 1, accent: '#8a837b' },
 ]
 
 const EXPLORE: ExploreModule[] = [
