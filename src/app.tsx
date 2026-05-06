@@ -1,23 +1,43 @@
 import { Router, Route } from '@stewie-js/router'
-import { lazy } from '@stewie-js/core'
 import type { JSXElement } from '@stewie-js/core'
+import { loadDiscoverData, loadPokemonDetail, loadSpeciesDetail } from './data/pokedex.js'
+import { DiscoverPage } from './pages/discover.js'
+import { DetailPage } from './pages/detail.js'
+import { SpeciesPage } from './pages/species.js'
 import './styles.css'
 
-// lazy() code-splits each page — the bundle for that page is only loaded
-// when the user navigates to it for the first time.
-const HomePage = lazy(() => import('./pages/home.js').then((m) => m.HomePage))
-const CounterPage = lazy(() => import('./pages/counter.js').then((m) => m.CounterPage))
-const AboutPage = lazy(() => import('./pages/about.js').then((m) => m.AboutPage))
+export const appRoutes = [
+  <Route
+    path="/"
+    component={DiscoverPage}
+    load={async () => loadDiscoverData('discover')}
+  />,
+  <Route
+    path="/discover"
+    component={DiscoverPage}
+    load={async () => loadDiscoverData('discover')}
+  />,
+  <Route
+    path="/type-lab"
+    component={DiscoverPage}
+    load={async () => loadDiscoverData('type-lab')}
+  />,
+  <Route
+    path="/pokemon/:slug"
+    component={DetailPage}
+    load={async (params) => loadPokemonDetail(params.slug)}
+  />,
+  <Route
+    path="/species/:slug"
+    component={SpeciesPage}
+    load={async (params) => loadSpeciesDetail(params.slug)}
+  />,
+] as JSXElement[]
 
-// Router must have only <Route> elements as direct children —
-// the Router scans them to build the route table.
-// Layout (nav + wrapper) lives inside each page so it has RouterContext.
 export function App({ initialUrl }: { initialUrl?: string } = {}): JSXElement {
   return (
-    <Router initialUrl={initialUrl}>
-      <Route path="/" component={HomePage} />
-      <Route path="/counter" component={CounterPage} />
-      <Route path="/about" component={AboutPage} />
+    <Router initialUrl={initialUrl} fallback={<div class="route-loading">Charting a fresh route...</div>}>
+      {appRoutes}
     </Router>
   )
 }

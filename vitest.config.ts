@@ -6,7 +6,7 @@ export default defineConfig({
     jsxImportSource: '@stewie-js/core',
   },
   test: {
-    environment: 'happy-dom',
+    environment: 'node',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 })
