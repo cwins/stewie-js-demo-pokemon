@@ -1,8 +1,17 @@
-import { For, Show, Switch, Match, effect } from '@stewie-js/core'
+import { For, Match, Show, Switch, effect } from '@stewie-js/core'
 import type { JSXElement } from '@stewie-js/core'
 import { useLocation, useRouter } from '@stewie-js/router'
-import type { DiscoverSort, ExploreModule, PokemonCardModel, PokemonType, QuestCard, SpeciesModel, TypeOption } from '../data/pokedex.js'
-import { appState, rememberCardTransition, rememberSpeciesTransition } from '../state/app-state.js'
+import type {
+  AbilityCategoryOption,
+  AbilityModel,
+  DiscoverSort,
+  ExploreModule,
+  PokemonCardModel,
+  PokemonType,
+  QuestCard,
+  TypeOption,
+} from '../data/pokedex.js'
+import { rememberAbilityTransition, rememberCardTransition } from '../state/app-state.js'
 import { TopNav } from './top-nav.js'
 
 export function AppShell({ children }: { children: JSXElement }): JSXElement {
@@ -69,6 +78,7 @@ export function SearchBar(props: {
   value: () => string
   onInput: (value: string) => void
   onAction: () => void
+  placeholder?: string
 }): JSXElement {
   return (
     <div class="search-bar">
@@ -77,7 +87,7 @@ export function SearchBar(props: {
         <input
           class="search-bar__input"
           type="search"
-          placeholder="Search Pokemon, types, abilities..."
+          placeholder={props.placeholder ?? 'Search Pokemon, types, abilities...'}
           value={() => props.value()}
           onInput={(event: Event) => props.onInput((event.currentTarget as HTMLInputElement).value)}
         />
@@ -88,7 +98,7 @@ export function SearchBar(props: {
 }
 
 export function FilterChip(props: {
-  option: TypeOption
+  option: TypeOption | AbilityCategoryOption
   active: () => boolean
   onToggle: () => void
 }): JSXElement {
@@ -106,6 +116,10 @@ export function FilterChip(props: {
 
 export function TypeBadge({ type }: { type: PokemonType }): JSXElement {
   return <span class={`type-badge type-badge--${type}`}>{type}</span>
+}
+
+export function CategoryBadge(props: { label: string; accent: string }): JSXElement {
+  return <span class="category-badge" style={`--accent:${props.accent};`}>{props.label}</span>
 }
 
 export function FeaturedPanel(props: {
@@ -156,6 +170,7 @@ export function PokemonCard(props: {
   pokemon: PokemonCardModel
   isFeatured: () => boolean
   onHover: (slug: string | null) => void
+  origin?: 'discover' | 'abilities' | 'ability-detail'
 }): JSXElement {
   const router = useRouter()
 
@@ -170,8 +185,8 @@ export function PokemonCard(props: {
       <button
         class="pokemon-card__button"
         onClick={() => {
-          rememberCardTransition(props.pokemon.slug, props.pokemon.accent)
-          void router.navigate(`/pokemon/${props.pokemon.slug}`)
+          rememberCardTransition(props.pokemon.slug, props.pokemon.accent, props.origin ?? 'discover')
+          void router.navigate(`/detail/${props.pokemon.slug}`)
         }}
       >
         <div class="pokemon-card__frame">
@@ -227,16 +242,27 @@ export function AbilityChip(props: {
   name: string
   summary: string
   accent: string
+  onClick?: () => void
 }): JSXElement {
-  return (
-    <article class="ability-chip" style={`--accent:${props.accent};`}>
-      <span class="ability-chip__icon" aria-hidden="true">✦</span>
-      <div>
-        <h3>{props.name}</h3>
-        <p>{props.summary}</p>
-      </div>
-    </article>
-  )
+  return props.onClick
+    ? (
+      <button class="ability-chip" style={`--accent:${props.accent};`} onClick={props.onClick}>
+        <span class="ability-chip__icon" aria-hidden="true">AB</span>
+        <div>
+          <h3>{props.name}</h3>
+          <p>{props.summary}</p>
+        </div>
+      </button>
+    )
+    : (
+      <article class="ability-chip" style={`--accent:${props.accent};`}>
+        <span class="ability-chip__icon" aria-hidden="true">AB</span>
+        <div>
+          <h3>{props.name}</h3>
+          <p>{props.summary}</p>
+        </div>
+      </article>
+    )
 }
 
 export function StatMeter(props: {
@@ -344,139 +370,162 @@ export function NarrativePanel(props: {
   )
 }
 
-export function EvolutionPath(props: {
-  species: SpeciesModel
-  activeNodeId: () => string | null
-  onHover: (id: string | null) => void
-}): JSXElement {
-  const router = useRouter()
-
-  return (
-    <div class="evolution-path">
-      <For each={props.species.evolutionPath}>
-        {(getNode: () => SpeciesModel['evolutionPath'][number], getIndex: () => number) => (
-          <div class="evolution-path__step">
-            <button
-              class={() => `evolution-node${props.activeNodeId() === getNode().id ? ' is-active' : ''}`}
-              onMouseEnter={() => props.onHover(getNode().id)}
-              onMouseLeave={() => props.onHover(null)}
-              onClick={() => {
-                rememberCardTransition(getNode().slug, props.species.accent)
-                void router.navigate(`/pokemon/${getNode().slug}`)
-              }}
-            >
-              <span class="evolution-node__ring" />
-              <img src={getNode().image} alt={getNode().name} />
-              <small>{getNode().number}</small>
-              <strong>{getNode().name}</strong>
-            </button>
-            <Show when={() => getIndex() < props.species.evolutionPath.length - 1}>
-              <span class="evolution-path__arrow" aria-hidden="true">→</span>
-            </Show>
-          </div>
-        )}
-      </For>
-    </div>
-  )
-}
-
-export function MetadataGrid(props: {
-  items: Array<{ label: string; value: string }>
-}): JSXElement {
-  return (
-    <div class="metadata-grid">
-      <For each={props.items}>
-        {(getItem: () => { label: string; value: string }) => (
-          <div class="metadata-grid__item">
-            <span>{getItem().label}</span>
-            <strong>{getItem().value}</strong>
-          </div>
-        )}
-      </For>
-    </div>
-  )
-}
-
-export function VariantCard(props: {
-  variant: SpeciesModel['variants'][number]
+export function AbilityCard(props: {
+  ability: AbilityModel
   active: () => boolean
-  onPick: () => void
+  onHover: (slug: string | null) => void
+  onOpen: () => void
 }): JSXElement {
   return (
-    <button
-      class={() => `variant-card${props.active() ? ' is-active' : ''}`}
-      style={`--accent:${props.variant.accent};`}
-      onClick={props.onPick}
+    <article
+      class={() => `ability-card${props.active() ? ' is-active' : ''}`}
+      style={`--accent:${props.ability.accent}; --glow:${props.ability.glow};`}
+      onMouseEnter={() => props.onHover(props.ability.slug)}
+      onMouseLeave={() => props.onHover(null)}
     >
-      <img src={props.variant.image} alt={props.variant.name} />
-      <strong>{props.variant.name}</strong>
-      <span>{props.variant.subtitle}</span>
-    </button>
+      <button class="ability-card__button" onClick={props.onOpen}>
+        <div class="ability-card__crest" style={`view-transition-name:ability-crest-${props.ability.slug};`}>
+          <span>{props.ability.crest}</span>
+        </div>
+        <strong>{props.ability.name}</strong>
+        <p>{props.ability.summary}</p>
+        <CategoryBadge label={props.ability.categoryLabel} accent={props.ability.accent} />
+      </button>
+    </article>
   )
 }
 
-export function SynergyFooter({ species }: { species: SpeciesModel }): JSXElement {
+export function AbilityPreviewPanel(props: {
+  ability: AbilityModel
+  onOpenAbility: () => void
+  onOpenPokemon: (slug: string) => void
+}): JSXElement {
   return (
-    <div class="synergy-footer">
-      <div>
-        <h3>Type Synergy</h3>
-        <div class="synergy-footer__types">
-          <For each={species.synergy.strongAgainst}>
-            {(getType: () => PokemonType) => <TypeBadge type={getType()} />}
-          </For>
+    <article class="ability-preview" style={`--accent:${props.ability.accent}; --glow:${props.ability.glow};`}>
+      <div class="ability-preview__copy">
+        <div class="ability-preview__crest">
+          <span>{props.ability.crest}</span>
         </div>
-      </div>
-      <div>
-        <h3>Ability Pool</h3>
-        <div class="synergy-footer__chips">
-          <For each={species.synergy.abilityPool}>
-            {(getAbility: () => string) => <span class="synergy-footer__chip">{getAbility()}</span>}
-          </For>
+        <div>
+          <h3>{props.ability.name}</h3>
+          <CategoryBadge label={props.ability.categoryLabel} accent={props.ability.accent} />
         </div>
+        <p>{props.ability.summary}</p>
+        <div class="ability-preview__stats">
+          <div>
+            <span>Effect</span>
+            <strong>{props.ability.effectSummary}</strong>
+          </div>
+          <div>
+            <span>Users</span>
+            <strong>{props.ability.users.length}</strong>
+          </div>
+        </div>
+        <button class="featured-panel__cta" onClick={props.onOpenAbility}>Open Ability</button>
       </div>
-      <div>
-        <h3>Related Species</h3>
-        <div class="synergy-footer__related">
-          <For each={species.synergy.relatedSpecies}>
-            {(getRelated: () => SpeciesModel['synergy']['relatedSpecies'][number]) => (
-              <button class="synergy-footer__related-card">
-                <img src={getRelated().image} alt={getRelated().name} />
-                <span>{getRelated().name}</span>
+      <div class="ability-preview__art">
+        <h4>Pokemon Gather</h4>
+        <div class="ability-preview__users">
+          <For each={props.ability.users}>
+            {(getUser) => (
+              <button class="ability-preview__user" onClick={() => props.onOpenPokemon(getUser().slug)}>
+                <img src={getUser().image} alt={getUser().name} />
+                <span>{getUser().name}</span>
               </button>
             )}
           </For>
         </div>
       </div>
+    </article>
+  )
+}
+
+export function AbilityHero(props: {
+  ability: AbilityModel
+  onBack: () => void
+}): JSXElement {
+  return (
+    <section class="ability-hero" style={`--accent:${props.ability.accent}; --glow:${props.ability.glow};`}>
+      <div class="ability-hero__copy">
+        <button class="ability-hero__back" onClick={props.onBack}>‹ All Abilities</button>
+        <PageIntro
+          number={`#${String(props.ability.id).padStart(2, '0')}`}
+          title={props.ability.name}
+          subtitle={props.ability.summary}
+        />
+        <CategoryBadge label={props.ability.categoryLabel} accent={props.ability.accent} />
+      </div>
+      <div class="ability-hero__crest-wrap">
+        <div class="ability-hero__crest" style={`view-transition-name:ability-crest-${props.ability.slug};`}>
+          <span>{props.ability.crest}</span>
+        </div>
+        <div class="ability-hero__effect">
+          <span>Effect Summary</span>
+          <p>{props.ability.effectSummary}</p>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function DetailList(props: {
+  title: string
+  items: string[]
+  accent: string
+}): JSXElement {
+  return (
+    <div class="detail-list" style={`--accent:${props.accent};`}>
+      <h3>{props.title}</h3>
+      <ul>
+        <For each={props.items}>
+          {(getItem) => <li>{getItem()}</li>}
+        </For>
+      </ul>
     </div>
   )
 }
 
-export function SpeciesHero(props: {
-  species: SpeciesModel
-  activeVariant: () => SpeciesModel['variants'][number]
-  onOpenDetail: () => void
+export function PokemonRosterCard(props: {
+  pokemon: AbilityModel['users'][number]
+  accent: string
+  onOpen: () => void
 }): JSXElement {
   return (
-    <section class="species-hero" style={`--accent:${props.species.accent}; --glow:${props.species.glow};`}>
-      <PageIntro
-        number="03"
-        title="Species"
-        subtitle="Evolution & lineage"
-      />
-      <div class="species-hero__summary">
-        <div>
-          <p class="species-hero__name">{`${props.species.number} ${props.species.name}`}</p>
-          <div class="species-hero__types">
-            <For each={props.species.types}>
-              {(getType: () => PokemonType) => <TypeBadge type={getType()} />}
-            </For>
-          </div>
-          <p>{props.species.summary}</p>
-          <button class="species-hero__cta" onClick={props.onOpenDetail}>Open Detail</button>
-        </div>
-        <div class="species-hero__art" style={`view-transition-name:pokemon-art-${props.species.slug};`}>
-          <img src={props.activeVariant().image} alt={props.activeVariant().name} />
-        </div>
+    <button class="roster-card" style={`--accent:${props.accent};`} onClick={props.onOpen}>
+      <img src={props.pokemon.image} alt={props.pokemon.name} />
+      <strong>{props.pokemon.name}</strong>
+      <span>{props.pokemon.number}</span>
+      <p>{props.pokemon.classification}</p>
+      <div class="roster-card__types">
+        <For each={props.pokemon.types}>
+          {(getType) => <TypeBadge type={getType()} />}
+        </For>
+      </div>
+    </button>
+  )
+}
+
+export function RelatedAbilityCard(props: {
+  ability: AbilityModel
+  onOpen: () => void
+}): JSXElement {
+  return (
+    <button class="related-ability-card" style={`--accent:${props.ability.accent};`} onClick={props.onOpen}>
+      <span class="related-ability-card__crest">{props.ability.crest}</span>
+      <div>
+        <strong>{props.ability.name}</strong>
+        <p>{props.ability.summary}</p>
+      </div>
+    </button>
+  )
+}
+
+export function AbilityFooterCallout(): JSXElement {
+  return (
+    <section class="ability-footer-callout">
+      <div>
+        <h2>Select a Pokemon to Explore Its Details</h2>
+        <p>Click any Pokemon above to view its full profile, stats, moves, and more.</p>
       </div>
     </section>
   )

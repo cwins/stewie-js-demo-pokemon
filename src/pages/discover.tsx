@@ -3,7 +3,7 @@ import type { JSXElement } from '@stewie-js/core'
 import { useQuery, useRouteData, useRouter } from '@stewie-js/router'
 import { AppShell, ExploreCard, FeaturedPanel, FilterChip, PageIntro, PokemonCard, QuestCardItem, SearchBar, SectionFrame, SortControl } from '../components/ui.js'
 import type { DiscoverPageData, DiscoverSort, PokemonCardModel } from '../data/pokedex.js'
-import { TYPE_OPTIONS } from '../data/pokedex.js'
+import { getOfflineDiscoverPokemon, loadDiscoverPokemon, TYPE_OPTIONS } from '../data/pokedex.js'
 import { rememberCardTransition } from '../state/app-state.js'
 
 function buildDiscoverUrl(query: { q?: string; type?: string; sort?: string }, pathname: string): string {
@@ -28,11 +28,14 @@ export function DiscoverPage(): JSXElement {
 
   let searchDraft!: ReturnType<typeof signal<string>>
   let hoveredSlug!: ReturnType<typeof signal<string | null>>
+  let discoverPokemon!: ReturnType<typeof signal<PokemonCardModel[]>>
   let filteredPokemon!: ReturnType<typeof computed<PokemonCardModel[]>>
   let featuredPokemon!: ReturnType<typeof computed<PokemonCardModel>>
+  let discoverRequestId = 0
   reactiveScope(() => {
     searchDraft = signal(query.q ?? '')
     hoveredSlug = signal<string | null>(null)
+    discoverPokemon = signal(getOfflineDiscoverPokemon(query.q ?? '', query.type ?? 'all'))
 
     effect(() => {
       const next = query.q ?? ''
@@ -41,21 +44,25 @@ export function DiscoverPage(): JSXElement {
       }
     })
 
-    filteredPokemon = computed(() => {
-      const phrase = (query.q ?? '').trim().toLowerCase()
+    effect(() => {
+      const q = query.q ?? ''
       const type = query.type ?? 'all'
-      const sort = (query.sort ?? 'pokedex') as DiscoverSort
+      const fallback = getOfflineDiscoverPokemon(q, type)
+      const requestId = ++discoverRequestId
 
-      const results = data.pokemon.filter((pokemon) => {
-        const matchesSearch = phrase === ''
-          || pokemon.name.toLowerCase().includes(phrase)
-          || pokemon.classification.toLowerCase().includes(phrase)
-          || pokemon.abilities.some((ability) => ability.name.toLowerCase().includes(phrase))
-        const matchesType = type === 'all' || pokemon.types.includes(type as PokemonCardModel['types'][number])
-        return matchesSearch && matchesType
+      discoverPokemon.set(fallback)
+
+      void loadDiscoverPokemon(q, type).then((results) => {
+        if (requestId !== discoverRequestId) return
+        discoverPokemon.set(results)
       })
+    })
 
-      return [...results].sort((left, right) => {
+    filteredPokemon = computed(() => {
+      const sort = (query.sort ?? 'pokedex') as DiscoverSort
+      const sourcePokemon = discoverPokemon()
+
+      return [...sourcePokemon].sort((left, right) => {
         if (sort === 'aura') {
           return right.auraRank - left.auraRank
         }
@@ -122,13 +129,13 @@ export function DiscoverPage(): JSXElement {
             </div>
           </div>
 
-          <FeaturedPanel
+            <FeaturedPanel
             pokemon={featuredPokemon()}
             label="Featured discovery"
             onExplore={() => {
               const pokemon = featuredPokemon()
               rememberCardTransition(pokemon.slug, pokemon.accent)
-              void router.navigate(`/pokemon/${pokemon.slug}`)
+              void router.navigate(`/detail/${pokemon.slug}`)
             }}
           />
         </section>
@@ -165,8 +172,9 @@ export function DiscoverPage(): JSXElement {
                   {(getPokemon: () => PokemonCardModel) => (
                     <PokemonCard
                       pokemon={getPokemon()}
-                      isFeatured={() => featuredPokemon().slug === getPokemon().slug}
+                      isFeatured={() => hoveredSlug() === getPokemon().slug}
                       onHover={(slug) => hoveredSlug.set(slug)}
+                      origin="discover"
                     />
                   )}
                 </For>
@@ -183,7 +191,7 @@ export function DiscoverPage(): JSXElement {
           </div>
         </SectionFrame>
 
-        <SectionFrame title="Why this feels like Stewie" subtitle="Signals, computed collections, and URL-backed state stay tightly scoped." tone="midnight">
+        <SectionFrame title="Stewie Features On This Page" subtitle="Signals, computed collections, and URL-backed state stay tightly scoped." tone="midnight">
           <div class="steering-note">
             <p>Typing in the search bar updates the query string and only the dependent card grid, featured panel, and count line respond.</p>
             <p>The selected card route is remembered in shared store state so cross-page transitions stay clean without a heavy global controller.</p>

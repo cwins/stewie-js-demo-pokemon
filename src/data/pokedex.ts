@@ -1,8 +1,34 @@
-export type PokemonType = 'normal' | 'fire' | 'water' | 'grass' | 'electric' | 'psychic' | 'dragon' | 'flying'
+export type PokemonType =
+  | 'normal'
+  | 'fire'
+  | 'water'
+  | 'grass'
+  | 'electric'
+  | 'psychic'
+  | 'dragon'
+  | 'flying'
+  | 'dark'
+  | 'steel'
+  | 'ice'
+  | 'rock'
+  | 'ground'
+  | 'fighting'
+  | 'ghost'
+  | 'poison'
+  | 'bug'
+  | 'fairy'
+
 export type DiscoverSort = 'pokedex' | 'aura' | 'quest'
+export type AbilityCategory = 'all' | 'offense' | 'defense' | 'support' | 'utility' | 'weather'
 
 export interface TypeOption {
   value: 'all' | PokemonType
+  label: string
+  icon: string
+}
+
+export interface AbilityCategoryOption {
+  value: AbilityCategory
   label: string
   icon: string
 }
@@ -24,6 +50,13 @@ export interface ExploreModule {
   accent: string
 }
 
+export interface PokemonAbilityModel {
+  slug: string
+  name: string
+  summary: string
+  category: Exclude<AbilityCategory, 'all'>
+}
+
 export interface PokemonCardModel {
   id: number
   slug: string
@@ -41,45 +74,37 @@ export interface PokemonCardModel {
   spotlight: string
   trainerCallout: string
   stats: Record<'hp' | 'attack' | 'defense' | 'spAtk' | 'spDef' | 'speed', number>
-  abilities: Array<{ name: string; summary: string }>
+  abilities: PokemonAbilityModel[]
   moves: Array<{ name: string; type: PokemonType; pp: string; summary: string }>
   quickFacts: Array<{ label: string; value: string }>
   tabs: Record<'overview' | 'moves' | 'habitat' | 'evolution', { title: string; body: string }>
-  speciesSlug: string
 }
 
-export interface SpeciesModel {
+export interface AbilityUserModel {
   slug: string
-  title: string
-  number: string
   name: string
+  number: string
+  image: string
   types: PokemonType[]
+  classification: string
+}
+
+export interface AbilityModel {
+  id: number
+  slug: string
+  name: string
+  category: Exclude<AbilityCategory, 'all'>
+  categoryLabel: string
   accent: string
   glow: string
-  image: string
+  crest: string
   summary: string
-  evolutionPath: Array<{
-    id: string
-    slug: string
-    name: string
-    number: string
-    image: string
-  }>
-  metadata: Array<{ label: string; value: string }>
-  trainerNote: string
-  variants: Array<{
-    id: string
-    name: string
-    subtitle: string
-    accent: string
-    image: string
-  }>
-  synergy: {
-    strongAgainst: PokemonType[]
-    weakAgainst: PokemonType[]
-    abilityPool: string[]
-    relatedSpecies: Array<{ slug: string; name: string; image: string }>
-  }
+  effectSummary: string
+  strategyNotes: string[]
+  interactionNotes: string[]
+  tags: string[]
+  users: AbilityUserModel[]
+  relatedAbilitySlugs: string[]
 }
 
 export interface DiscoverPageData {
@@ -93,8 +118,75 @@ export interface DiscoverPageData {
   pokemon: PokemonCardModel[]
 }
 
+export interface AbilitiesPageData {
+  heroNumber: string
+  heroTitle: string
+  heroSubtitle: string
+  featuredAbilitySlug: string
+  abilities: AbilityModel[]
+  trending: AbilityModel[]
+}
+
+interface LivePokemonAbilityEntry {
+  ability?: {
+    name?: string | null
+    abilityeffecttexts?: AbilityEffectText[] | null
+  } | null
+}
+
+interface LivePokemonTypeEntry {
+  type?: {
+    name?: string | null
+  } | null
+}
+
+interface LivePokemonMoveEntry {
+  move?: {
+    name?: string | null
+    pp?: number | null
+    power?: number | null
+    type?: {
+      name?: string | null
+    } | null
+  } | null
+}
+
+interface LivePokemonStatEntry {
+  base_stat?: number | null
+  stat?: {
+    name?: string | null
+  } | null
+}
+
+interface LivePokemonNode {
+  id: number
+  name: string
+  height?: number | null
+  weight?: number | null
+  base_experience?: number | null
+  pokemontypes?: LivePokemonTypeEntry[] | null
+  pokemonabilities?: LivePokemonAbilityEntry[] | null
+  pokemonmoves?: LivePokemonMoveEntry[] | null
+  pokemonstats?: LivePokemonStatEntry[] | null
+}
+
 const artwork = (id: number): string =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
+
+const categoryLabel = (category: Exclude<AbilityCategory, 'all'>): string => {
+  switch (category) {
+    case 'offense':
+      return 'Offense'
+    case 'defense':
+      return 'Defense'
+    case 'support':
+      return 'Support'
+    case 'utility':
+      return 'Utility'
+    case 'weather':
+      return 'Weather'
+  }
+}
 
 export const TYPE_OPTIONS: TypeOption[] = [
   { value: 'all', label: 'All', icon: '◎' },
@@ -103,6 +195,15 @@ export const TYPE_OPTIONS: TypeOption[] = [
   { value: 'grass', label: 'Grass', icon: '❋' },
   { value: 'electric', label: 'Electric', icon: '⚡' },
   { value: 'psychic', label: 'Psychic', icon: '◌' },
+]
+
+export const ABILITY_CATEGORY_OPTIONS: AbilityCategoryOption[] = [
+  { value: 'all', label: 'All', icon: '◎' },
+  { value: 'offense', label: 'Offense', icon: '✦' },
+  { value: 'defense', label: 'Defense', icon: '⬢' },
+  { value: 'support', label: 'Support', icon: '✚' },
+  { value: 'utility', label: 'Utility', icon: '⟡' },
+  { value: 'weather', label: 'Weather', icon: '☀' },
 ]
 
 export const SORT_OPTIONS: Array<{ value: DiscoverSort; label: string }> = [
@@ -130,14 +231,14 @@ const POKEMON: PokemonCardModel[] = [
     trainerCallout: 'Crowd-favorite scout for quick challenges and bright routes.',
     stats: { hp: 35, attack: 55, defense: 40, spAtk: 50, spDef: 50, speed: 90 },
     abilities: [
-      { name: 'Static', summary: 'Stores a crackling field that can stun on contact.' },
-      { name: 'Lightning Rod', summary: 'Pulls electric energy inward and surges harder.' },
+      { slug: 'static', name: 'Static', summary: 'Stores a crackling field that can stun on contact.', category: 'support' },
+      { slug: 'lightning-rod', name: 'Lightning Rod', summary: 'Pulls electric energy inward and surges harder.', category: 'utility' },
     ],
     moves: [
       { name: 'Thunderbolt', type: 'electric', pp: '15/15', summary: 'A focused lightning strike with cinematic snap.' },
       { name: 'Volt Tackle', type: 'electric', pp: '5/5', summary: 'A blazing charge wrapped in gold static.' },
       { name: 'Quick Attack', type: 'normal', pp: '30/30', summary: 'A blink-fast dash that keeps momentum high.' },
-      { name: 'Iron Tail', type: 'normal', pp: '15/15', summary: 'A finishing sweep that cuts through guard.' },
+      { name: 'Iron Tail', type: 'steel', pp: '15/15', summary: 'A finishing sweep that cuts through guard.' },
     ],
     quickFacts: [
       { label: 'Height', value: '0.4 m' },
@@ -153,7 +254,6 @@ const POKEMON: PokemonCardModel[] = [
       habitat: { title: 'Forest Canopy', body: 'It thrives in dense woods where quick movement and charged surfaces turn the terrain into a playground.' },
       evolution: { title: 'Pichu to Raichu', body: 'The line grows from soft flickers into confident thunder, keeping speed and charisma at every step.' },
     },
-    speciesSlug: 'pikachu',
   },
   {
     id: 4,
@@ -173,8 +273,8 @@ const POKEMON: PokemonCardModel[] = [
     trainerCallout: 'Quick to bond, quick to battle, and always camera-ready.',
     stats: { hp: 39, attack: 52, defense: 43, spAtk: 60, spDef: 50, speed: 65 },
     abilities: [
-      { name: 'Blaze', summary: 'Fire surges brighter when the pressure spikes.' },
-      { name: 'Solar Power', summary: 'Turns harsh sunlight into a dramatic offense boost.' },
+      { slug: 'blaze', name: 'Blaze', summary: 'Fire surges brighter when the pressure spikes.', category: 'offense' },
+      { slug: 'solar-power', name: 'Solar Power', summary: 'Turns harsh sunlight into a dramatic offense boost.', category: 'weather' },
     ],
     moves: [
       { name: 'Flame Burst', type: 'fire', pp: '15/15', summary: 'A compact detonation that keeps screens lively.' },
@@ -196,7 +296,6 @@ const POKEMON: PokemonCardModel[] = [
       habitat: { title: 'Heat-Loving Rover', body: 'Mountain paths and volcanic edges suit its tail flame and adventurous pacing.' },
       evolution: { title: 'Fire Lineage', body: 'Each evolution broadens the same fiery identity instead of replacing it, which keeps the route coherent.' },
     },
-    speciesSlug: 'charizard',
   },
   {
     id: 7,
@@ -216,13 +315,13 @@ const POKEMON: PokemonCardModel[] = [
     trainerCallout: 'Ideal for calm, strategic encounters and fluid route design.',
     stats: { hp: 44, attack: 48, defense: 65, spAtk: 50, spDef: 64, speed: 43 },
     abilities: [
-      { name: 'Torrent', summary: 'Water pressure rises when the battle turns tense.' },
-      { name: 'Rain Dish', summary: 'Restores momentum under cleansing rainfall.' },
+      { slug: 'torrent', name: 'Torrent', summary: 'Water pressure rises when the battle turns tense.', category: 'offense' },
+      { slug: 'rain-dish', name: 'Rain Dish', summary: 'Restores momentum under cleansing rainfall.', category: 'weather' },
     ],
     moves: [
       { name: 'Water Pulse', type: 'water', pp: '20/20', summary: 'A smooth ring of water that warps the air around it.' },
       { name: 'Aqua Tail', type: 'water', pp: '10/10', summary: 'A snapping sweep with a strong silhouette.' },
-      { name: 'Bite', type: 'normal', pp: '25/25', summary: 'A fast interruption tool for close space.' },
+      { name: 'Bite', type: 'dark', pp: '25/25', summary: 'A fast interruption tool for close space.' },
       { name: 'Ice Spinner', type: 'water', pp: '15/15', summary: 'A cold flourish that clears the lane.' },
     ],
     quickFacts: [
@@ -239,7 +338,6 @@ const POKEMON: PokemonCardModel[] = [
       habitat: { title: 'Lakeside Patrol', body: 'Quiet inlets and reflective water surfaces reinforce the clean, premium tone of the interface.' },
       evolution: { title: 'Shell-Borne Growth', body: 'The line grows sturdier and more commanding while preserving its composed silhouette.' },
     },
-    speciesSlug: 'squirtle',
   },
   {
     id: 1,
@@ -259,8 +357,8 @@ const POKEMON: PokemonCardModel[] = [
     trainerCallout: 'Perfect for supportive quests and restorative exploration loops.',
     stats: { hp: 45, attack: 49, defense: 49, spAtk: 65, spDef: 65, speed: 45 },
     abilities: [
-      { name: 'Overgrow', summary: 'Plant power blooms hardest when the stakes rise.' },
-      { name: 'Chlorophyll', summary: 'Sunlight turns every motion lighter and faster.' },
+      { slug: 'overgrow', name: 'Overgrow', summary: 'Plant power blooms hardest when the stakes rise.', category: 'support' },
+      { slug: 'chlorophyll', name: 'Chlorophyll', summary: 'Sunlight turns every motion lighter and faster.', category: 'weather' },
     ],
     moves: [
       { name: 'Razor Leaf', type: 'grass', pp: '25/25', summary: 'A sharp spray of leaves with clean diagonal rhythm.' },
@@ -282,7 +380,6 @@ const POKEMON: PokemonCardModel[] = [
       habitat: { title: 'Sunlit Grove', body: 'Warm light, paper textures, and green accents all reinforce its calm presence.' },
       evolution: { title: 'Blooming Progression', body: 'The species evolves by scaling power outward while preserving a rooted center.' },
     },
-    speciesSlug: 'bulbasaur',
   },
   {
     id: 133,
@@ -302,13 +399,13 @@ const POKEMON: PokemonCardModel[] = [
     trainerCallout: 'Fans out beautifully into variants and route possibilities.',
     stats: { hp: 55, attack: 55, defense: 50, spAtk: 45, spDef: 65, speed: 55 },
     abilities: [
-      { name: 'Run Away', summary: 'Keeps mobile under pressure and slips out cleanly.' },
-      { name: 'Adaptability', summary: 'Sharpens familiar moves into signature highlights.' },
+      { slug: 'run-away', name: 'Run Away', summary: 'Keeps mobile under pressure and slips out cleanly.', category: 'utility' },
+      { slug: 'adaptability', name: 'Adaptability', summary: 'Sharpens familiar moves into signature highlights.', category: 'offense' },
     ],
     moves: [
       { name: 'Swift', type: 'normal', pp: '20/20', summary: 'A bright starburst that never feels wasted.' },
       { name: 'Quick Attack', type: 'normal', pp: '30/30', summary: 'Short, snappy, and easy to read on every screen.' },
-      { name: 'Bite', type: 'normal', pp: '25/25', summary: 'A light interruption tool with attitude.' },
+      { name: 'Bite', type: 'dark', pp: '25/25', summary: 'A light interruption tool with attitude.' },
       { name: 'Shadow Ball', type: 'psychic', pp: '15/15', summary: 'A mysterious flourish hinting at future branches.' },
     ],
     quickFacts: [
@@ -325,7 +422,6 @@ const POKEMON: PokemonCardModel[] = [
       habitat: { title: 'Urban Edge Wanderer', body: 'It lives near people and pathways, which makes it a natural connective tissue between site modules.' },
       evolution: { title: 'Branching Futures', body: 'Few species sell the idea of magical routes and collectible variants as cleanly as Eevee.' },
     },
-    speciesSlug: 'eevee',
   },
   {
     id: 6,
@@ -342,11 +438,11 @@ const POKEMON: PokemonCardModel[] = [
     region: 'Kanto',
     auraRank: 100,
     spotlight: 'It spits fire hot enough to melt boulders and steal every frame around it.',
-    trainerCallout: 'The unmistakable ace for a bold detail reveal and lineage page.',
+    trainerCallout: 'The unmistakable ace for a bold detail reveal and ability-forward exploration.',
     stats: { hp: 78, attack: 84, defense: 78, spAtk: 109, spDef: 85, speed: 100 },
     abilities: [
-      { name: 'Blaze', summary: 'Powers up Fire-type moves in a pinch.' },
-      { name: 'Solar Power', summary: 'Boosts Sp. Atk in strong sunlight.' },
+      { slug: 'blaze', name: 'Blaze', summary: 'Powers up Fire-type moves in a pinch.', category: 'offense' },
+      { slug: 'solar-power', name: 'Solar Power', summary: 'Boosts Sp. Atk in strong sunlight.', category: 'weather' },
     ],
     moves: [
       { name: 'Flamethrower', type: 'fire', pp: '15/15', summary: 'Hurls a torrent of fire that may burn.' },
@@ -366,247 +462,247 @@ const POKEMON: PokemonCardModel[] = [
       overview: { title: 'Heroic Burst', body: 'Charizard is the cleanest proof point for a cinematic Pokemon profile: bold silhouette, readable stats, and high emotional weight.' },
       moves: { title: 'Air and Flame', body: 'Its kit mixes huge fire arcs with aerial slicing, which helps the move grid feel kinetic without becoming noisy.' },
       habitat: { title: 'Mountain Skies', body: 'Mountain thermals and open horizons fit the premium, adventurous tone better than a lab-like data backdrop ever could.' },
-      evolution: { title: 'Lineage Complete', body: 'The Charmander line scales upward naturally, making it ideal for a drawn-in sigil route on the Species page.' },
+      evolution: { title: 'Lineage Complete', body: 'The Charmander line scales upward naturally, but the real story here is how its abilities turn style into strategy.' },
     },
-    speciesSlug: 'charizard',
   },
 ]
 
-const SPECIES: SpeciesModel[] = [
+const pokemonSummary = (slug: string): AbilityUserModel => {
+  const pokemon = getPokemonBySlug(slug)
+  return {
+    slug: pokemon.slug,
+    name: pokemon.name,
+    number: pokemon.number,
+    image: pokemon.image,
+    types: pokemon.types,
+    classification: pokemon.classification,
+  }
+}
+
+const ABILITIES: AbilityModel[] = [
   {
-    slug: 'charizard',
-    title: 'Species',
-    number: '#006',
-    name: 'Charizard',
-    types: ['fire', 'flying'],
-    accent: '#f08a3e',
-    glow: '#ffcf8f',
-    image: artwork(6),
-    summary: 'It spits fire that is hot enough to melt boulders. Known to cause forest fires unintentionally.',
-    evolutionPath: [
-      { id: 'charmander', slug: 'charmander', name: 'Charmander', number: '#004', image: artwork(4) },
-      { id: 'charmeleon', slug: 'charmeleon', name: 'Charmeleon', number: '#005', image: artwork(5) },
-      { id: 'charizard', slug: 'charizard', name: 'Charizard', number: '#006', image: artwork(6) },
+    id: 66,
+    slug: 'blaze',
+    name: 'Blaze',
+    category: 'offense',
+    categoryLabel: categoryLabel('offense'),
+    accent: '#f36a2f',
+    glow: '#ffbf8e',
+    crest: 'BZ',
+    summary: 'Powers up Fire-type moves when the Pokemon is in a pinch.',
+    effectSummary: 'Fire techniques flare harder once the user is fighting from low health.',
+    strategyNotes: [
+      'Perfect for dramatic closer turns and pressure-heavy finishing lines.',
+      'Combines cleanly with high-tempo attackers and burst-oriented move kits.',
+      'Rewards confident play without demanding complicated setup.',
     ],
-    metadata: [
-      { label: 'Category', value: 'Flame Pokemon' },
-      { label: 'Height', value: '1.7 m' },
-      { label: 'Weight', value: '90.5 kg' },
-      { label: 'Habitat', value: 'Mountain' },
-      { label: 'Type', value: 'Fire / Flying' },
-      { label: 'Egg Group', value: 'Monster, Dragon' },
-      { label: 'Growth Rate', value: 'Medium Fast' },
-      { label: 'Catch Rate', value: '45' },
-      { label: 'Region', value: 'Kanto' },
-      { label: 'Base Exp', value: '240' },
-      { label: 'EV Yield', value: '3 Sp. Atk' },
-      { label: 'Gender Ratio', value: '87.5% / 12.5%' },
+    interactionNotes: [
+      'Triggers only while HP is low, so it favors late-battle swing turns.',
+      'Stacks naturally with premium fire coverage like Flamethrower and Fire Fang.',
     ],
-    trainerNote: 'A formidable Pokemon that rules the skies. Best used to overwhelm foes with powerful special attacks.',
-    variants: [
-      { id: 'original', name: 'Charizard', subtitle: 'Original', accent: '#f08a3e', image: artwork(6) },
-      { id: 'shiny', name: 'Charizard', subtitle: 'Shiny', accent: '#d3b164', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/6.png' },
-      { id: 'mega-x', name: 'Mega Charizard X', subtitle: 'Shadow Flame', accent: '#4fa7df', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10034.png' },
-      { id: 'mega-y', name: 'Mega Charizard Y', subtitle: 'Solar Crown', accent: '#ff8d4f', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10035.png' },
-    ],
-    synergy: {
-      strongAgainst: ['grass', 'fire', 'electric', 'water'],
-      weakAgainst: ['water', 'electric', 'dragon'],
-      abilityPool: ['Blaze', 'Solar Power', 'Tough Claws', 'Drought'],
-      relatedSpecies: [
-        { slug: 'charizard', name: 'Charizard', image: artwork(6) },
-        { slug: 'pikachu', name: 'Pikachu', image: artwork(25) },
-        { slug: 'bulbasaur', name: 'Bulbasaur', image: artwork(1) },
-      ],
-    },
+    tags: ['Pinch Power', 'Fire Burst', 'Closer'],
+    users: [pokemonSummary('charmander'), pokemonSummary('charizard')],
+    relatedAbilitySlugs: ['solar-power', 'adaptability', 'torrent', 'static'],
   },
   {
-    slug: 'pikachu',
-    title: 'Species',
-    number: '#025',
-    name: 'Pikachu',
-    types: ['electric'],
+    id: 9,
+    slug: 'static',
+    name: 'Static',
+    category: 'support',
+    categoryLabel: categoryLabel('support'),
     accent: '#f4c542',
     glow: '#ffe28b',
-    image: artwork(25),
-    summary: 'Whenever several of these Pokemon gather, their electricity could build and cause lightning storms.',
-    evolutionPath: [
-      { id: 'pichu', slug: 'pikachu', name: 'Pichu', number: '#172', image: artwork(172) },
-      { id: 'pikachu', slug: 'pikachu', name: 'Pikachu', number: '#025', image: artwork(25) },
-      { id: 'raichu', slug: 'pikachu', name: 'Raichu', number: '#026', image: artwork(26) },
+    crest: 'ST',
+    summary: 'Contact with the Pokemon may leave the attacker paralyzed.',
+    effectSummary: 'A crackling retaliatory field punishes contact and shifts momentum immediately.',
+    strategyNotes: [
+      'Ideal for tempo control and making physical attackers second-guess every touch.',
+      'Works best on characters who naturally invite close-range challenges.',
+      'Keeps the pace lively because its value is felt in one instant, not over long setup windows.',
     ],
-    metadata: [
-      { label: 'Category', value: 'Mouse Pokemon' },
-      { label: 'Height', value: '0.4 m' },
-      { label: 'Weight', value: '6.0 kg' },
-      { label: 'Habitat', value: 'Forest' },
-      { label: 'Type', value: 'Electric' },
-      { label: 'Egg Group', value: 'Field, Fairy' },
-      { label: 'Growth Rate', value: 'Medium Fast' },
-      { label: 'Catch Rate', value: '190' },
-      { label: 'Region', value: 'Kanto' },
-      { label: 'Base Exp', value: '112' },
-      { label: 'EV Yield', value: '2 Speed' },
-      { label: 'Gender Ratio', value: '50% / 50%' },
+    interactionNotes: [
+      'Especially strong in skirmishes where the opponent needs repeated contact.',
+      'Pairs beautifully with fast repositioning and speed-led pressure.',
     ],
-    trainerNote: 'Fast, bright, and effortless to root for. It gives the product its quickest moments of delight.',
-    variants: [
-      { id: 'standard', name: 'Pikachu', subtitle: 'Core Form', accent: '#f4c542', image: artwork(25) },
-      { id: 'partner', name: 'Partner Pikachu', subtitle: 'Starter Bond', accent: '#ffad4e', image: artwork(25) },
-      { id: 'raichu', name: 'Raichu', subtitle: 'Evolution', accent: '#f08a3e', image: artwork(26) },
-      { id: 'alolan', name: 'Alolan Raichu', subtitle: 'Surf Form', accent: '#8edbff', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10100.png' },
-    ],
-    synergy: {
-      strongAgainst: ['water', 'flying'],
-      weakAgainst: ['grass', 'dragon'],
-      abilityPool: ['Static', 'Lightning Rod', 'Surge Surfer'],
-      relatedSpecies: [
-        { slug: 'pikachu', name: 'Raichu', image: artwork(26) },
-        { slug: 'charizard', name: 'Charizard', image: artwork(6) },
-        { slug: 'eevee', name: 'Eevee', image: artwork(133) },
-      ],
-    },
+    tags: ['Status', 'Momentum', 'Electric Field'],
+    users: [pokemonSummary('pikachu')],
+    relatedAbilitySlugs: ['lightning-rod', 'overgrow', 'adaptability', 'run-away'],
   },
   {
-    slug: 'bulbasaur',
-    title: 'Species',
-    number: '#001',
-    name: 'Bulbasaur',
-    types: ['grass'],
+    id: 31,
+    slug: 'lightning-rod',
+    name: 'Lightning Rod',
+    category: 'utility',
+    categoryLabel: categoryLabel('utility'),
+    accent: '#ffb12e',
+    glow: '#ffe59b',
+    crest: 'LR',
+    summary: 'Draws in electric moves to boost special attack instead of taking damage.',
+    effectSummary: 'The user converts incoming electrical pressure into a sharper special strike profile.',
+    strategyNotes: [
+      'Great for route planning because it changes how an entire matchup has to be approached.',
+      'Turns a defensive read into a visible power spike, which fits the cinematic UI language well.',
+    ],
+    interactionNotes: [
+      'Most valuable when you can predict electric pressure or protect a partner in doubles-like scenarios.',
+    ],
+    tags: ['Redirection', 'Special Boost', 'Counterplay'],
+    users: [pokemonSummary('pikachu')],
+    relatedAbilitySlugs: ['static', 'solar-power', 'run-away', 'rain-dish'],
+  },
+  {
+    id: 67,
+    slug: 'torrent',
+    name: 'Torrent',
+    category: 'offense',
+    categoryLabel: categoryLabel('offense'),
+    accent: '#4abcf1',
+    glow: '#b7ecff',
+    crest: 'TR',
+    summary: 'Powers up Water-type moves when the Pokemon is in a pinch.',
+    effectSummary: 'Water techniques surge with extra force once the user enters clutch range.',
+    strategyNotes: [
+      'A clean offensive mirror to Blaze, but with calmer, more controlled pressure.',
+      'Especially good on balanced profiles that can stay alive long enough to cash in the boost.',
+    ],
+    interactionNotes: [
+      'Best expressed through decisive water finishers and tempo swings in the late phase of a battle.',
+    ],
+    tags: ['Pinch Power', 'Water Burst', 'Clutch'],
+    users: [pokemonSummary('squirtle')],
+    relatedAbilitySlugs: ['rain-dish', 'blaze', 'overgrow', 'adaptability'],
+  },
+  {
+    id: 44,
+    slug: 'rain-dish',
+    name: 'Rain Dish',
+    category: 'weather',
+    categoryLabel: categoryLabel('weather'),
+    accent: '#5bc7f6',
+    glow: '#8edbff',
+    crest: 'RD',
+    summary: 'The Pokemon gradually regains HP in rain.',
+    effectSummary: 'A quiet sustain engine that turns rainy field states into steady healing.',
+    strategyNotes: [
+      'Shifts the mood from explosive to patient, letting defensive rhythm become its own reward.',
+      'Works well when you want the interface to suggest strategic composure instead of pure offense.',
+    ],
+    interactionNotes: [
+      'Most effective when the battle plan can reliably maintain rain for multiple turns.',
+    ],
+    tags: ['Weather', 'Recovery', 'Sustain'],
+    users: [pokemonSummary('squirtle')],
+    relatedAbilitySlugs: ['torrent', 'chlorophyll', 'solar-power', 'run-away'],
+  },
+  {
+    id: 65,
+    slug: 'overgrow',
+    name: 'Overgrow',
+    category: 'support',
+    categoryLabel: categoryLabel('support'),
     accent: '#63b96a',
     glow: '#bbf0c0',
-    image: artwork(1),
-    summary: 'A strange seed was planted on its back at birth. The plant sprouts and grows with this Pokemon.',
-    evolutionPath: [
-      { id: 'bulbasaur', slug: 'bulbasaur', name: 'Bulbasaur', number: '#001', image: artwork(1) },
-      { id: 'ivysaur', slug: 'bulbasaur', name: 'Ivysaur', number: '#002', image: artwork(2) },
-      { id: 'venusaur', slug: 'bulbasaur', name: 'Venusaur', number: '#003', image: artwork(3) },
+    crest: 'OG',
+    summary: 'Powers up Grass-type moves when the Pokemon is in a pinch.',
+    effectSummary: 'Plant-driven pressure blooms once the user is cornered, turning resilience into payoff.',
+    strategyNotes: [
+      'Strong on grounded, dependable builds that want a restorative emotional tone without losing teeth.',
+      'Helps grass rosters feel like sustain and pressure belong in the same frame.',
     ],
-    metadata: [
-      { label: 'Category', value: 'Seed Pokemon' },
-      { label: 'Height', value: '0.7 m' },
-      { label: 'Weight', value: '6.9 kg' },
-      { label: 'Habitat', value: 'Grassland' },
-      { label: 'Type', value: 'Grass' },
-      { label: 'Egg Group', value: 'Monster, Grass' },
-      { label: 'Growth Rate', value: 'Medium Slow' },
-      { label: 'Catch Rate', value: '45' },
-      { label: 'Region', value: 'Kanto' },
-      { label: 'Base Exp', value: '64' },
-      { label: 'EV Yield', value: '1 Sp. Atk' },
-      { label: 'Gender Ratio', value: '87.5% / 12.5%' },
+    interactionNotes: [
+      'Creates the most value on teams that can survive long enough to trigger a decisive grass response.',
     ],
-    trainerNote: 'A restorative presence that makes the species page feel alive rather than encyclopedic.',
-    variants: [
-      { id: 'bulbasaur', name: 'Bulbasaur', subtitle: 'Original', accent: '#63b96a', image: artwork(1) },
-      { id: 'ivysaur', name: 'Ivysaur', subtitle: 'Middle Bloom', accent: '#5ab662', image: artwork(2) },
-      { id: 'venusaur', name: 'Venusaur', subtitle: 'Full Bloom', accent: '#458f4b', image: artwork(3) },
-      { id: 'mega-venusaur', name: 'Mega Venusaur', subtitle: 'Ancient Bloom', accent: '#5ccf6d', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10033.png' },
-    ],
-    synergy: {
-      strongAgainst: ['water', 'grass'],
-      weakAgainst: ['fire', 'flying'],
-      abilityPool: ['Overgrow', 'Chlorophyll'],
-      relatedSpecies: [
-        { slug: 'bulbasaur', name: 'Venusaur', image: artwork(3) },
-        { slug: 'squirtle', name: 'Squirtle', image: artwork(7) },
-        { slug: 'charizard', name: 'Charizard', image: artwork(6) },
-      ],
-    },
+    tags: ['Growth', 'Pinch Power', 'Recovery Mood'],
+    users: [pokemonSummary('bulbasaur')],
+    relatedAbilitySlugs: ['chlorophyll', 'static', 'torrent', 'adaptability'],
   },
   {
-    slug: 'squirtle',
-    title: 'Species',
-    number: '#007',
-    name: 'Squirtle',
-    types: ['water'],
-    accent: '#5bc7f6',
-    glow: '#b7ecff',
-    image: artwork(7),
-    summary: 'When it retracts its long neck into its shell, it squirts out water with vigorous force.',
-    evolutionPath: [
-      { id: 'squirtle', slug: 'squirtle', name: 'Squirtle', number: '#007', image: artwork(7) },
-      { id: 'wartortle', slug: 'squirtle', name: 'Wartortle', number: '#008', image: artwork(8) },
-      { id: 'blastoise', slug: 'squirtle', name: 'Blastoise', number: '#009', image: artwork(9) },
+    id: 34,
+    slug: 'chlorophyll',
+    name: 'Chlorophyll',
+    category: 'weather',
+    categoryLabel: categoryLabel('weather'),
+    accent: '#5dbb68',
+    glow: '#bff5a8',
+    crest: 'CL',
+    summary: 'Boosts the Pokemon speed in sunshine.',
+    effectSummary: 'Bright field conditions sharpen movement, creating a lighter and faster combat rhythm.',
+    strategyNotes: [
+      'A sunshine ability that feels nimble instead of explosive, which gives weather teams more range of tone.',
+      'Pairs especially well with clean movement silhouettes and fast repositioning.',
     ],
-    metadata: [
-      { label: 'Category', value: 'Tiny Turtle Pokemon' },
-      { label: 'Height', value: '0.5 m' },
-      { label: 'Weight', value: '9.0 kg' },
-      { label: 'Habitat', value: 'Lake' },
-      { label: 'Type', value: 'Water' },
-      { label: 'Egg Group', value: 'Monster, Water 1' },
-      { label: 'Growth Rate', value: 'Medium Slow' },
-      { label: 'Catch Rate', value: '45' },
-      { label: 'Region', value: 'Kanto' },
-      { label: 'Base Exp', value: '63' },
-      { label: 'EV Yield', value: '1 Defense' },
-      { label: 'Gender Ratio', value: '87.5% / 12.5%' },
+    interactionNotes: [
+      'Requires sun support to reach full value, but pays it back in immediate pacing changes.',
     ],
-    trainerNote: 'Shell-backed discipline and clean water geometry keep the page balanced.',
-    variants: [
-      { id: 'squirtle', name: 'Squirtle', subtitle: 'Original', accent: '#5bc7f6', image: artwork(7) },
-      { id: 'wartortle', name: 'Wartortle', subtitle: 'Wave Crest', accent: '#4eaede', image: artwork(8) },
-      { id: 'blastoise', name: 'Blastoise', subtitle: 'Heavy Cannon', accent: '#388fc0', image: artwork(9) },
-      { id: 'mega-blastoise', name: 'Mega Blastoise', subtitle: 'Pressure Core', accent: '#62d8ff', image: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10036.png' },
-    ],
-    synergy: {
-      strongAgainst: ['fire', 'water'],
-      weakAgainst: ['grass', 'electric'],
-      abilityPool: ['Torrent', 'Rain Dish', 'Mega Launcher'],
-      relatedSpecies: [
-        { slug: 'squirtle', name: 'Blastoise', image: artwork(9) },
-        { slug: 'pikachu', name: 'Pikachu', image: artwork(25) },
-        { slug: 'bulbasaur', name: 'Bulbasaur', image: artwork(1) },
-      ],
-    },
+    tags: ['Weather', 'Speed', 'Sunlight'],
+    users: [pokemonSummary('bulbasaur')],
+    relatedAbilitySlugs: ['solar-power', 'rain-dish', 'overgrow', 'lightning-rod'],
   },
   {
-    slug: 'eevee',
-    title: 'Species',
-    number: '#133',
-    name: 'Eevee',
-    types: ['normal'],
+    id: 91,
+    slug: 'adaptability',
+    name: 'Adaptability',
+    category: 'offense',
+    categoryLabel: categoryLabel('offense'),
     accent: '#a88157',
     glow: '#d8b89a',
-    image: artwork(133),
-    summary: 'Its genetic code is irregular. It may mutate if it is exposed to radiation from element stones.',
-    evolutionPath: [
-      { id: 'eevee', slug: 'eevee', name: 'Eevee', number: '#133', image: artwork(133) },
-      { id: 'vaporeon', slug: 'eevee', name: 'Vaporeon', number: '#134', image: artwork(134) },
-      { id: 'jolteon', slug: 'eevee', name: 'Jolteon', number: '#135', image: artwork(135) },
+    crest: 'AD',
+    summary: 'Powers up moves of the same type as the Pokemon.',
+    effectSummary: 'The user’s natural move identity hits harder, making familiar attacks feel premium and reliable.',
+    strategyNotes: [
+      'Great for demo UX because its value is easy to explain and easy to feel.',
+      'Lets a Pokemon double down on its core identity rather than branching into niche tech.',
     ],
-    metadata: [
-      { label: 'Category', value: 'Evolution Pokemon' },
-      { label: 'Height', value: '0.3 m' },
-      { label: 'Weight', value: '6.5 kg' },
-      { label: 'Habitat', value: 'Urban Edge' },
-      { label: 'Type', value: 'Normal' },
-      { label: 'Egg Group', value: 'Field' },
-      { label: 'Growth Rate', value: 'Medium Fast' },
-      { label: 'Catch Rate', value: '45' },
-      { label: 'Region', value: 'Kanto' },
-      { label: 'Base Exp', value: '65' },
-      { label: 'EV Yield', value: '1 Sp. Def' },
-      { label: 'Gender Ratio', value: '87.5% / 12.5%' },
+    interactionNotes: [
+      'Especially effective when the user already has a clean, recognizable primary attack profile.',
     ],
-    trainerNote: 'Eevee sells possibility. Every variant card feels like a promise rather than a footnote.',
-    variants: [
-      { id: 'eevee', name: 'Eevee', subtitle: 'Original', accent: '#a88157', image: artwork(133) },
-      { id: 'vaporeon', name: 'Vaporeon', subtitle: 'Tidal Form', accent: '#5bc7f6', image: artwork(134) },
-      { id: 'jolteon', name: 'Jolteon', subtitle: 'Spark Form', accent: '#f4c542', image: artwork(135) },
-      { id: 'flareon', name: 'Flareon', subtitle: 'Ember Form', accent: '#e85c4a', image: artwork(136) },
+    tags: ['Signature Damage', 'Identity', 'Reliable Pressure'],
+    users: [pokemonSummary('eevee')],
+    relatedAbilitySlugs: ['run-away', 'blaze', 'static', 'overgrow'],
+  },
+  {
+    id: 94,
+    slug: 'solar-power',
+    name: 'Solar Power',
+    category: 'weather',
+    categoryLabel: categoryLabel('weather'),
+    accent: '#ef8b35',
+    glow: '#ffc883',
+    crest: 'SP',
+    summary: 'Boosts special attack in sunshine at the cost of some HP.',
+    effectSummary: 'Sunlight ignites a high-risk special attack engine that trades safety for spectacle.',
+    strategyNotes: [
+      'This is the most cinematic ability in the set because the upside is visible and the cost is tangible.',
+      'Perfect on characters who are already framed like boss reveals or finishing aces.',
     ],
-    synergy: {
-      strongAgainst: ['electric', 'water'],
-      weakAgainst: ['fire', 'grass'],
-      abilityPool: ['Run Away', 'Adaptability', 'Anticipation'],
-      relatedSpecies: [
-        { slug: 'eevee', name: 'Vaporeon', image: artwork(134) },
-        { slug: 'pikachu', name: 'Pikachu', image: artwork(25) },
-        { slug: 'charizard', name: 'Charizard', image: artwork(6) },
-      ],
-    },
+    interactionNotes: [
+      'Thrives on sun-supported teams and asks the player to commit to momentum over comfort.',
+    ],
+    tags: ['Weather', 'Risk Reward', 'Special Burst'],
+    users: [pokemonSummary('charmander'), pokemonSummary('charizard')],
+    relatedAbilitySlugs: ['blaze', 'chlorophyll', 'rain-dish', 'lightning-rod'],
+  },
+  {
+    id: 50,
+    slug: 'run-away',
+    name: 'Run Away',
+    category: 'utility',
+    categoryLabel: categoryLabel('utility'),
+    accent: '#9f7b5f',
+    glow: '#d8c2a7',
+    crest: 'RA',
+    summary: 'Enables the Pokemon to escape from wild battles without fail.',
+    effectSummary: 'Pure route flexibility that reinforces mobility, charm, and low-friction repositioning.',
+    strategyNotes: [
+      'Not flashy, but it gives the app a nice utility note among the more combat-forward powers.',
+      'Works well as a companion ability in a collectible browsing experience because it reads immediately.',
+    ],
+    interactionNotes: [
+      'In a demo context, its value is less battle pressure and more identity: quick, nimble, and free-moving.',
+    ],
+    tags: ['Mobility', 'Escape', 'Traversal'],
+    users: [pokemonSummary('eevee')],
+    relatedAbilitySlugs: ['adaptability', 'lightning-rod', 'rain-dish', 'static'],
   },
 ]
 
@@ -620,11 +716,456 @@ const QUESTS: QuestCard[] = [
 const EXPLORE: ExploreModule[] = [
   { id: 'gym', title: 'Gym Challenges', subtitle: 'Test your strength', accent: '#e85c4a' },
   { id: 'region', title: 'Region Atlas', subtitle: 'Explore the world', accent: '#5bc7f6' },
-  { id: 'lab', title: 'Type Lab', subtitle: 'Understand strengths', accent: '#f4c542' },
-  { id: 'daily', title: 'Daily Expedition', subtitle: 'New rewards every day', accent: '#9d62ff' },
+  { id: 'abilities', title: 'Ability Atlas', subtitle: 'Trace powers and traits', accent: '#f4c542' },
+  { id: 'daily', title: 'Daily Expedition', subtitle: 'New rewards every day', accent: '#63b96a' },
 ]
 
-const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+const GRAPHQL_ENDPOINT = 'https://graphql.pokeapi.co/v1beta2'
+const graphQlCache = new Map<string, Promise<unknown>>()
+const GRAPHQL_TIMEOUT_MS = 3500
+const livePokemonModels = new Map<string, PokemonCardModel>()
+const liveTypeSet = new Set<PokemonType>([
+  'normal',
+  'fire',
+  'water',
+  'grass',
+  'electric',
+  'psychic',
+  'dragon',
+  'flying',
+  'dark',
+  'steel',
+  'ice',
+  'rock',
+  'ground',
+  'fighting',
+  'ghost',
+  'poison',
+  'bug',
+  'fairy',
+])
+const trendingAbilitySlugs = ['solar-power', 'adaptability', 'lightning-rod', 'chlorophyll', 'run-away'] as const
+const typeVisuals: Record<PokemonType, { accent: string; glow: string }> = {
+  normal: { accent: '#a88157', glow: '#d8b89a' },
+  fire: { accent: '#e85c4a', glow: '#ffb07a' },
+  water: { accent: '#5bc7f6', glow: '#b7ecff' },
+  grass: { accent: '#63b96a', glow: '#bbf0c0' },
+  electric: { accent: '#f4c542', glow: '#ffe28b' },
+  psychic: { accent: '#b26ce7', glow: '#efc9ff' },
+  dragon: { accent: '#6c57d7', glow: '#b7acff' },
+  flying: { accent: '#62a9e8', glow: '#bde5ff' },
+  dark: { accent: '#5a5561', glow: '#9d96ab' },
+  steel: { accent: '#8ca2b8', glow: '#d5e2ef' },
+  ice: { accent: '#78d9f6', glow: '#d4f7ff' },
+  rock: { accent: '#b48f5a', glow: '#e1c392' },
+  ground: { accent: '#d3a15f', glow: '#efd2a1' },
+  fighting: { accent: '#d05858', glow: '#f2acac' },
+  ghost: { accent: '#7662ba', glow: '#c2b6ef' },
+  poison: { accent: '#a963d0', glow: '#e1baf6' },
+  bug: { accent: '#8bb34d', glow: '#d3f0aa' },
+  fairy: { accent: '#e6a0c8', glow: '#ffdcef' },
+}
+
+interface AbilityEffectText {
+  effect?: string | null
+  short_effect?: string | null
+}
+
+interface AbilityAtlasQueryData {
+  ability: Array<{
+    id: number
+    name: string
+    abilityeffecttexts?: AbilityEffectText[] | null
+    pokemonabilities?: Array<{
+      pokemon?: {
+        id: number
+        name: string
+        pokemontypes?: Array<{
+          type?: {
+            name?: string | null
+          } | null
+        }> | null
+      } | null
+    }> | null
+  }>
+}
+
+type AbilityAtlasUserEntry = NonNullable<NonNullable<AbilityAtlasQueryData['ability'][number]['pokemonabilities']>[number]>
+
+interface PokemonDetailQueryData {
+  pokemon: LivePokemonNode[]
+}
+
+interface DiscoverPokemonQueryData {
+  pokemon: LivePokemonNode[]
+}
+
+const abilityAtlasQuery = `
+query AbilityAtlas($names: [String!]!) {
+  ability(where: { name: { _in: $names } }) {
+    id
+    name
+    abilityeffecttexts(where: { language: { name: { _eq: "en" } } }) {
+      effect
+      short_effect
+    }
+    pokemonabilities(limit: 8) {
+      pokemon {
+        id
+        name
+        pokemontypes {
+          type {
+            name
+          }
+        }
+      }
+    }
+  }
+}
+`
+
+const pokemonDetailQuery = `
+query PokemonDetail($name: String!) {
+  pokemon(where: { name: { _eq: $name } }, limit: 1) {
+    id
+    name
+    height
+    weight
+    base_experience
+    pokemontypes {
+      type {
+        name
+      }
+    }
+    pokemonabilities {
+      ability {
+        name
+        abilityeffecttexts(where: { language: { name: { _eq: "en" } } }) {
+          effect
+          short_effect
+        }
+      }
+    }
+    pokemonstats {
+      base_stat
+      stat {
+        name
+      }
+    }
+    pokemonmoves(limit: 4) {
+      move {
+        name
+        pp
+        power
+        type {
+          name
+        }
+      }
+    }
+  }
+}
+`
+
+function isOfflineMode(): boolean {
+  return import.meta.env.MODE === 'test' || import.meta.env.VITE_POKEDEX_OFFLINE === '1'
+}
+
+function toPokemonType(value?: string | null): PokemonType | null {
+  if (!value) return null
+  return liveTypeSet.has(value as PokemonType) ? value as PokemonType : null
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .split(/[-\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+    .join(' ')
+}
+
+function firstEffectText(texts?: AbilityEffectText[] | null): string | undefined {
+  if (!texts?.length) return undefined
+  return texts[0]?.short_effect ?? texts[0]?.effect ?? undefined
+}
+
+function getTypeVisual(type?: PokemonType): { accent: string; glow: string } {
+  return type ? typeVisuals[type] : { accent: '#a88157', glow: '#d8b89a' }
+}
+
+function getLiveTypes(entries?: LivePokemonTypeEntry[] | null, fallback?: PokemonType[]): PokemonType[] {
+  const liveTypes = entries
+    ?.map((entry) => toPokemonType(entry?.type?.name))
+    .filter((value): value is PokemonType => value !== null)
+
+  if (liveTypes?.length) return liveTypes
+  if (fallback?.length) return fallback
+  return ['normal']
+}
+
+function buildGenericQuickFacts(live: LivePokemonNode): PokemonCardModel['quickFacts'] {
+  return [
+    { label: 'Height', value: live.height ? `${(live.height / 10).toFixed(1)} m` : 'Unknown' },
+    { label: 'Weight', value: live.weight ? `${(live.weight / 10).toFixed(1)} kg` : 'Unknown' },
+    { label: 'Habitat', value: 'Unknown' },
+    { label: 'Catch Rate', value: 'Unknown' },
+    { label: 'Base Exp', value: live.base_experience ? String(live.base_experience) : 'Unknown' },
+    { label: 'Temper', value: 'Uncharted' },
+  ]
+}
+
+function buildGenericPokemonModelFromLive(live: LivePokemonNode, fallback?: PokemonCardModel): PokemonCardModel {
+  const types = getLiveTypes(live.pokemontypes, fallback?.types)
+  const visuals = getTypeVisual(types[0])
+  const title = toTitleCase(live.name)
+  const liveAbilities = live.pokemonabilities
+    ?.map((entry) => {
+      const abilityName = entry?.ability?.name
+      if (!abilityName) return null
+      const slug = abilityName
+      const mockAbility = ABILITIES.find((ability) => ability.slug === slug)
+      return {
+        slug,
+        name: toTitleCase(abilityName),
+        summary: firstEffectText(entry?.ability?.abilityeffecttexts) ?? mockAbility?.summary ?? 'Battle-ready passive effect.',
+        category: mockAbility?.category ?? 'utility',
+      }
+    })
+    .filter((value): value is PokemonAbilityModel => value !== null)
+
+  const genericMoves = live.pokemonmoves
+    ?.map((entry) => {
+      const move = entry?.move
+      const moveName = move?.name
+      const moveType = toPokemonType(move?.type?.name) ?? types[0] ?? 'normal'
+      if (!moveName) return null
+      return {
+        name: toTitleCase(moveName),
+        type: moveType,
+        pp: move?.pp ? `${move.pp}/${move.pp}` : '—',
+        summary: move?.power ? `${move.power} power move that keeps the roster grounded in live data.` : 'Status move carried through the live roster.',
+      }
+    })
+    .filter((value): value is PokemonCardModel['moves'][number] => value !== null)
+
+  const base = fallback ?? {
+    id: live.id,
+    slug: live.name,
+    name: title,
+    number: `#${String(live.id).padStart(3, '0')}`,
+    types,
+    accent: visuals.accent,
+    glow: visuals.glow,
+    image: artwork(live.id),
+    discovery: `Live discovery routed in from PokeAPI for ${title}.`,
+    classification: 'Pokemon',
+    habitat: 'Unknown Habitat',
+    region: 'Unknown Region',
+    auraRank: Math.min(100, live.base_experience ?? 60),
+    spotlight: `${title} arrives from the live roster with ${types.join(' / ')} energy and a fresh route into the detail view.`,
+    trainerCallout: `A live-discovered encounter ready for detail view exploration.`,
+    stats: { hp: 50, attack: 50, defense: 50, spAtk: 50, spDef: 50, speed: 50 },
+    abilities: [],
+    moves: [],
+    quickFacts: buildGenericQuickFacts(live),
+    tabs: {
+      overview: { title: `${title} Overview`, body: `${title} was loaded from the live GraphQL roster and mapped into the demo's premium presentation layer.` },
+      moves: { title: `${title} Moves`, body: `A compact move kit keeps this imported profile usable even when the source roster extends beyond the original mock set.` },
+      habitat: { title: `${title} Habitat`, body: `Some ecological details are not surfaced by the current endpoint, so this route stays intentionally generic for live-only arrivals.` },
+      evolution: { title: `${title} Growth`, body: `Live Discover results can now open directly into a working detail route, even for Pokemon outside the original curated lineup.` },
+    },
+  }
+
+  const statsByName = new Map((live.pokemonstats ?? []).map((entry) => [entry?.stat?.name ?? '', entry?.base_stat ?? 50]))
+
+  const merged: PokemonCardModel = {
+    ...base,
+    id: live.id ?? base.id,
+    slug: live.name ?? base.slug,
+    name: title,
+    number: `#${String(live.id).padStart(3, '0')}`,
+    types,
+    accent: fallback?.accent ?? visuals.accent,
+    glow: fallback?.glow ?? visuals.glow,
+    image: artwork(live.id),
+    auraRank: Math.min(100, live.base_experience ?? base.auraRank),
+    abilities: liveAbilities?.length ? liveAbilities : base.abilities,
+    moves: genericMoves?.length ? genericMoves : base.moves,
+    quickFacts: buildGenericQuickFacts(live).map((fact, index) => base.quickFacts[index] ? { ...base.quickFacts[index], value: fact.value } : fact),
+    stats: {
+      hp: Number(statsByName.get('hp') ?? base.stats.hp),
+      attack: Number(statsByName.get('attack') ?? base.stats.attack),
+      defense: Number(statsByName.get('defense') ?? base.stats.defense),
+      spAtk: Number(statsByName.get('special-attack') ?? base.stats.spAtk),
+      spDef: Number(statsByName.get('special-defense') ?? base.stats.spDef),
+      speed: Number(statsByName.get('speed') ?? base.stats.speed),
+    },
+  }
+
+  livePokemonModels.set(merged.slug, merged)
+  return merged
+}
+
+function getDiscoverQuery(term: string, type: string, limit: number): { query: string; variables: Record<string, unknown> } {
+  const usesTypeFilter = type !== 'all'
+  const filters = [`name: { _iregex: $term }`]
+
+  if (usesTypeFilter) {
+    filters.push(`pokemontypes: { type: { name: { _eq: $type } } }`)
+  }
+
+  return {
+    query: `
+query DiscoverPokemon($term: String!, $limit: Int!${usesTypeFilter ? ', $type: String!' : ''}) {
+  pokemon(
+    distinct_on: [id]
+    where: { ${filters.join(', ')} }
+    order_by: { id: asc }
+    limit: $limit
+  ) {
+    id
+    name
+    height
+    weight
+    base_experience
+    pokemontypes {
+      type {
+        name
+      }
+    }
+    pokemonabilities {
+      ability {
+        name
+        abilityeffecttexts(where: { language: { name: { _eq: "en" } } }) {
+          short_effect
+        }
+      }
+    }
+  }
+}
+`,
+    variables: {
+      term,
+      limit,
+      ...(usesTypeFilter ? { type } : {}),
+    },
+  }
+}
+
+async function fetchPokeApiGraphql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
+  const cacheKey = JSON.stringify({ query, variables })
+  const cached = graphQlCache.get(cacheKey) as Promise<T> | undefined
+  if (cached) return cached
+
+  const request = (async () => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), GRAPHQL_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(GRAPHQL_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ query, variables }),
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        throw new Error(`PokeAPI GraphQL request failed with ${response.status}`)
+      }
+
+      const payload = await response.json() as { data?: T; errors?: Array<{ message?: string }> }
+
+      if (payload.errors?.length) {
+        throw new Error(payload.errors.map((error) => error.message ?? 'Unknown GraphQL error').join('; '))
+      }
+
+      if (!payload.data) {
+        throw new Error('PokeAPI GraphQL returned no data')
+      }
+
+      return payload.data
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  })()
+
+  graphQlCache.set(cacheKey, request)
+  try {
+    return await request
+  } catch (error) {
+    graphQlCache.delete(cacheKey)
+    throw error
+  }
+}
+
+function toAbilityUserModel(user: AbilityAtlasUserEntry): AbilityUserModel | null {
+  const pokemon = user?.pokemon
+  if (!pokemon?.name || !pokemon.id) return null
+
+  const mockPokemon = POKEMON.find((entry) => entry.slug === pokemon.name)
+  const resolvedTypes = getLiveTypes(pokemon.pokemontypes, mockPokemon?.types)
+
+  return {
+    slug: pokemon.name,
+    name: toTitleCase(pokemon.name),
+    number: `#${String(pokemon.id).padStart(3, '0')}`,
+    image: artwork(pokemon.id),
+    types: resolvedTypes,
+    classification: mockPokemon?.classification ?? 'Pokemon',
+  }
+}
+
+function mergeAbilityWithLive(base: AbilityModel, live: AbilityAtlasQueryData['ability'][number] | undefined): AbilityModel {
+  if (!live) return base
+
+  const effectText = firstEffectText(live.abilityeffecttexts)
+  const users = live.pokemonabilities
+    ?.map((entry) => toAbilityUserModel(entry))
+    .filter((value): value is AbilityUserModel => value !== null)
+
+  return {
+    ...base,
+    id: live.id ?? base.id,
+    summary: effectText ?? base.summary,
+    effectSummary: effectText ?? base.effectSummary,
+    users: users?.length ? users : base.users,
+  }
+}
+
+function mergePokemonWithLive(base: PokemonCardModel, live: PokemonDetailQueryData['pokemon'][number] | undefined): PokemonCardModel {
+  if (!live) return base
+
+  return buildGenericPokemonModelFromLive(live, base)
+}
+
+async function loadLiveAbilityAtlas(): Promise<Map<string, AbilityAtlasQueryData['ability'][number]>> {
+  const data = await fetchPokeApiGraphql<AbilityAtlasQueryData>(abilityAtlasQuery, {
+    names: ABILITIES.map((ability) => ability.slug),
+  })
+
+  return new Map(data.ability.map((ability) => [ability.name, ability]))
+}
+
+async function loadLivePokemonDetail(slug: string): Promise<PokemonDetailQueryData['pokemon'][number] | undefined> {
+  const data = await fetchPokeApiGraphql<PokemonDetailQueryData>(pokemonDetailQuery, {
+    name: slug,
+  })
+  return data.pokemon[0]
+}
+
+function filterOfflineDiscoverPokemon(search: string, type: string): PokemonCardModel[] {
+  const phrase = search.trim().toLowerCase()
+
+  return POKEMON.filter((pokemon) => {
+    const matchesSearch = phrase === ''
+      || pokemon.name.toLowerCase().includes(phrase)
+      || pokemon.classification.toLowerCase().includes(phrase)
+      || pokemon.abilities.some((ability) => ability.name.toLowerCase().includes(phrase))
+    const matchesType = type === 'all' || pokemon.types.includes(type as PokemonType)
+    return matchesSearch && matchesType
+  })
+}
 
 export async function loadDiscoverData(mode: 'discover' = 'discover'): Promise<DiscoverPageData> {
   return {
@@ -639,18 +1180,102 @@ export async function loadDiscoverData(mode: 'discover' = 'discover'): Promise<D
   }
 }
 
-export async function loadPokemonDetail(slug: string): Promise<PokemonCardModel> {
-  return getPokemonBySlug(slug)
+export async function loadDiscoverPokemon(search: string, type: string): Promise<PokemonCardModel[]> {
+  const fallback = filterOfflineDiscoverPokemon(search, type)
+
+  if (isOfflineMode()) {
+    return fallback
+  }
+
+  try {
+    const { query, variables } = getDiscoverQuery(search.trim() ? `.*${search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*` : '.*', type, 24)
+    const data = await fetchPokeApiGraphql<DiscoverPokemonQueryData>(query, variables)
+
+    const liveResults = data.pokemon.map((pokemon) => {
+      const mockPokemon = POKEMON.find((entry) => entry.slug === pokemon.name)
+      return buildGenericPokemonModelFromLive(pokemon, mockPokemon)
+    })
+
+    return liveResults.length ? liveResults : fallback
+  } catch {
+    return fallback
+  }
 }
 
-export async function loadSpeciesDetail(slug: string): Promise<SpeciesModel> {
-  return getSpeciesBySlug(slug)
+export async function loadAbilitiesData(): Promise<AbilitiesPageData> {
+  const fallback = {
+    heroNumber: '02',
+    heroTitle: 'Abilities Atlas',
+    heroSubtitle: 'Powers. Traits. Battle-changing effects.',
+    featuredAbilitySlug: 'blaze',
+    abilities: ABILITIES,
+    trending: [...trendingAbilitySlugs]
+      .map((slug) => getAbilityBySlug(slug)),
+  }
+
+  if (isOfflineMode()) {
+    return fallback
+  }
+
+  try {
+    const liveAtlas = await loadLiveAbilityAtlas()
+    const abilities = ABILITIES.map((ability) => mergeAbilityWithLive(ability, liveAtlas.get(ability.slug)))
+
+    return {
+      ...fallback,
+      abilities,
+      trending: [...trendingAbilitySlugs]
+        .map((slug) => abilities.find((ability) => ability.slug === slug) ?? getAbilityBySlug(slug)),
+    }
+  } catch {
+    return fallback
+  }
+}
+
+export async function loadAbilityDetail(slug: string): Promise<AbilityModel> {
+  const fallback = getAbilityBySlug(slug)
+
+  if (isOfflineMode()) {
+    return fallback
+  }
+
+  try {
+    const liveAtlas = await loadLiveAbilityAtlas()
+    return mergeAbilityWithLive(fallback, liveAtlas.get(slug))
+  } catch {
+    return fallback
+  }
+}
+
+export async function loadPokemonDetail(slug: string): Promise<PokemonCardModel> {
+  const fallback = getPokemonBySlug(slug)
+
+  if (isOfflineMode()) {
+    return fallback
+  }
+
+  try {
+    const livePokemon = await loadLivePokemonDetail(slug)
+    return mergePokemonWithLive(fallback, livePokemon)
+  } catch {
+    return fallback
+  }
 }
 
 export function getPokemonBySlug(slug: string): PokemonCardModel {
-  return POKEMON.find((pokemon) => pokemon.slug === slug) ?? POKEMON.find((pokemon) => pokemon.slug === 'charizard')!
+  return POKEMON.find((pokemon) => pokemon.slug === slug)
+    ?? livePokemonModels.get(slug)
+    ?? POKEMON.find((pokemon) => pokemon.slug === 'charizard')!
 }
 
-export function getSpeciesBySlug(slug: string): SpeciesModel {
-  return SPECIES.find((species) => species.slug === slug) ?? SPECIES.find((species) => species.slug === 'charizard')!
+export function getAbilityBySlug(slug: string): AbilityModel {
+  return ABILITIES.find((ability) => ability.slug === slug) ?? ABILITIES.find((ability) => ability.slug === 'blaze')!
+}
+
+export function getRelatedAbilities(ability: AbilityModel): AbilityModel[] {
+  return ability.relatedAbilitySlugs.map((slug) => getAbilityBySlug(slug))
+}
+
+export function getOfflineDiscoverPokemon(search: string, type: string): PokemonCardModel[] {
+  return filterOfflineDiscoverPokemon(search, type)
 }

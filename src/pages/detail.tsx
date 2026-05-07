@@ -1,9 +1,20 @@
 import { batch, computed, defineResource, reactiveScope, signal, useResource, For } from '@stewie-js/core'
 import type { JSXElement } from '@stewie-js/core'
 import { useRouteData, useRouter } from '@stewie-js/router'
-import { AbilityChip, AppShell, MoveChip, NarrativePanel, PageIntro, QuickFactItem, SectionFrame, StatMeter, TabRail, TypeBadge } from '../components/ui.js'
+import {
+  AbilityChip,
+  AppShell,
+  MoveChip,
+  NarrativePanel,
+  PageIntro,
+  QuickFactItem,
+  SectionFrame,
+  StatMeter,
+  TabRail,
+  TypeBadge,
+} from '../components/ui.js'
 import type { PokemonCardModel } from '../data/pokedex.js'
-import { appState, rememberSpeciesTransition } from '../state/app-state.js'
+import { appState, rememberAbilityTransition } from '../state/app-state.js'
 
 const detailLoreResource = defineResource(async (source: string, _opts: { signal: AbortSignal }) => {
   const [slug, tab] = source.split(':')
@@ -24,7 +35,7 @@ export function DetailPage(): JSXElement {
 
   batch(() => {
     appState.selectedPokemonSlug = pokemon.slug
-    appState.selectedSpeciesSlug = pokemon.speciesSlug
+    appState.selectedAbilitySlug = pokemon.abilities[0]?.slug ?? 'blaze'
   })
 
   let activeTab!: ReturnType<typeof signal<'overview' | 'moves' | 'habitat' | 'evolution'>>
@@ -41,7 +52,7 @@ export function DetailPage(): JSXElement {
       <div class="page page--detail">
         <section class="detail-hero" style={`--accent:${pokemon.accent}; --glow:${pokemon.glow};`}>
           <div class="detail-hero__copy">
-            <PageIntro number="02" title={pokemon.name} subtitle={pokemon.classification} kicker={pokemon.number} />
+            <PageIntro number="03" title={pokemon.name} subtitle={pokemon.classification} kicker={pokemon.number} />
             <div class="detail-hero__types">
               <For each={pokemon.types}>
                 {(getType) => <TypeBadge type={getType()} />}
@@ -52,11 +63,13 @@ export function DetailPage(): JSXElement {
               <button
                 class="detail-hero__cta"
                 onClick={() => {
-                  rememberSpeciesTransition(pokemon.speciesSlug, pokemon.accent)
-                  void router.navigate(`/species/${pokemon.speciesSlug}`)
+                  const ability = pokemon.abilities[0]
+                  if (!ability) return
+                  rememberAbilityTransition(ability.slug, pokemon.accent)
+                  void router.navigate(`/abilities/${ability.slug}`)
                 }}
               >
-                Follow Species Route
+                Open {pokemon.abilities[0]?.name ?? 'Ability'}
               </button>
             </div>
           </div>
@@ -75,6 +88,10 @@ export function DetailPage(): JSXElement {
                     name={getAbility().name}
                     summary={getAbility().summary}
                     accent={pokemon.accent}
+                    onClick={() => {
+                      rememberAbilityTransition(getAbility().slug, pokemon.accent)
+                      void router.navigate(`/abilities/${getAbility().slug}`)
+                    }}
                   />
                 )}
               </For>

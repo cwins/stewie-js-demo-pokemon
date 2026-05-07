@@ -12,9 +12,10 @@ This directory contains the generated visual design artifacts for the mock Pokem
 
 - `07-page-discover-responsive.png`
 - `08-page-detail-responsive.png`
-- `09-page-species-responsive.png`
+- `10-page-abilities-responsive.png`
+- `11-page-ability-detail-responsive.png`
 
-These are the three standalone page assets, each showing `Desktop`, `Tablet`, and `Mobile`.
+These are the current standalone page assets, each showing `Desktop`, `Tablet`, and `Mobile`.
 
 ## Earlier concept boards
 
@@ -24,6 +25,7 @@ These are the three standalone page assets, each showing `Desktop`, `Tablet`, an
 - `04-concept-anime-magical-with-shell-explorations-board.png`
 - `05-concept-responsive-first-board.png`
 - `06-concept-responsive-mobile-legible-board.png`
+- `archive-exploratory/09-page-species-responsive.png` (superseded by the Abilities direction)
 
 ## Raw generated files
 

@@ -7,42 +7,46 @@ Primary references:
 - `implementation-handoff-plan.md`
 - `07-page-discover-responsive.png`
 - `08-page-detail-responsive.png`
-- `09-page-species-responsive.png`
-
-## Stewie-JS Goal
-
-Do not implement this as if Stewie were just a JSX syntax layer.
-
-The finished work should strongly demonstrate Stewie-JS advantages:
-
-- fine-grained signal reactivity
-- URL-as-store routing
-- route-level data loading
-- Stewie-native control flow and list rendering
-- async primitives that fit the framework model
-- coordinated SSR/hydration where appropriate
-- first-party testing and devtools support
-
-Favor Stewie-native patterns over React-like habits such as broad component state ownership or unnecessary indirection.
+- `10-page-abilities-responsive.png`
+- `11-page-ability-detail-responsive.png`
 
 ## Objective
 
-Implement a responsive-first, anime-inspired Pokemon web experience with three core pages:
+Implement a responsive-first, anime-inspired Pokemon web experience with these routes:
 
-1. `Discover`
-2. `Detail`
-3. `Species`
+1. `Discover` at `/`
+2. `Abilities` at `/abilities`
+3. `Ability Detail` at `/abilities/:ability`
+4. `Detail` at `/detail/:pokemon`
 
 The site should feel sharp, magical, cinematic, and character-led. It should not feel like a wiki, encyclopedia, or generic dashboard.
+
+## Navigation Rule
+
+- `Detail` is not in the top navigation
+- users should only reach `Detail` by clicking a Pokemon card
+- the top nav should emphasize `Discover` and `Abilities`
 
 ## Non-Negotiables
 
 - Responsive, not adaptive
 - Same major components across desktop, tablet, and mobile
 - No hiding core content blocks by breakpoint
-- No mobile-only replacements for filters, stats, moves, or evolution path
+- No mobile-only replacements for filters, stats, moves, or Pokemon roster sections
 - `Detail` page content parity must hold across all sizes
 - Motion should reinforce navigation and hierarchy, not act as decoration only
+
+## Stewie-JS Goal
+
+Do not implement this as if Stewie were just a JSX syntax layer.
+
+The finished work should strongly demonstrate:
+
+- `signal()`, `computed()`, `batch()`, and `untrack()` where appropriate
+- Stewie-native control flow with `Show`, `For`, `Switch`, and `Match`
+- URL-as-store routing
+- route-level data loading
+- first-party testing and devtools support
 
 ## Visual References To Follow
 
@@ -50,19 +54,12 @@ Use these files as the highest-priority visual source of truth:
 
 - `07-page-discover-responsive.png`
 - `08-page-detail-responsive.png`
-- `09-page-species-responsive.png`
+- `10-page-abilities-responsive.png`
+- `11-page-ability-detail-responsive.png`
 
-Use these earlier concept boards only as supporting history if needed:
+Older concept boards are supporting history only.
 
-- `04-concept-anime-magical-with-shell-explorations-board.png`
-- `05-concept-responsive-first-board.png`
-- `06-concept-responsive-mobile-legible-board.png`
-
-## Suggested Build Scope
-
-Build a polished mock product shell that uses real-looking data from GraphQL PokeAPI where practical. Prioritize visual fidelity, responsive behavior, and motion over exhaustive feature completeness.
-
-Minimum page expectations:
+## Minimum Page Expectations
 
 ### `Discover`
 
@@ -71,7 +68,26 @@ Minimum page expectations:
 - filter chip rail
 - featured discovery hero
 - Pokemon card collection
-- supporting modules that feel like quest / discovery panels
+- supporting discovery modules
+
+### `Abilities`
+
+- hero panel introducing abilities as powers/traits
+- search field
+- filter chip rail or grouped categories
+- featured ability cards
+- grouped ability sections
+- preview of opening a focused ability detail view
+
+### `Ability Detail`
+
+- ability hero / crest
+- effect summary
+- related tags or categories
+- strategy or usage notes
+- Pokemon roster for that ability
+- related abilities
+- clear return path to `/abilities`
 
 ### `Detail`
 
@@ -83,14 +99,6 @@ Minimum page expectations:
 - quick facts
 - tab rail
 
-### `Species`
-
-- species identity panel
-- evolution path
-- metadata cards
-- related forms / variants
-- supporting descriptors
-
 ## Data Contract
 
 Use a stable content contract per page.
@@ -98,117 +106,52 @@ Use a stable content contract per page.
 For `Detail`, keep parity across breakpoints:
 
 - same Pokemon
-- same 2 abilities
-- same 4 moves
+- same abilities
+- same moves
 - same 6 base stats with labels and values
 - same quick-fact fields
 
-If the layout changes, the content must still remain present.
+For `Ability Detail`, keep parity across breakpoints:
+
+- same selected ability
+- same effect summary
+- same related categories/tags
+- same Pokemon roster items
+- same related abilities section
 
 ## Framework-Specific Build Requirements
 
-Structure the implementation so it showcases Stewie well:
-
-- use `signal()` for local interactive state such as tab selection, hover emphasis, active chips, staged reveals, and animation toggles
-- use `computed()` for filtered Pokemon collections, derived labels, sort outputs, and composed UI state
-- use `batch()` when multiple related state updates should settle together
-- use `untrack()` if you need to intentionally avoid subscribing inside a derived or effectful path
-- use `store()` for shared app-level state if needed, but keep local interactions local
-- prefer `Show`, `For`, `Switch`, and `Match` for conditional and list rendering patterns
-- use `@stewie-js/router` for all page navigation
-- back `Discover` search/filter/sort state with route query params when practical
-- use route params for entity identity like Pokemon id/name and species identity
-- use route `load` functions and `useRouteData()` for `Detail` and `Species` page data
-- if async view-level loading needs to happen inside components, prefer `resource()` with `Suspense`
+- use `signal()` for local interactive state
+- use `computed()` for filtered Pokemon and ability collections
+- use `batch()` when related state changes should settle together
+- use `untrack()` only when avoiding accidental subscriptions is necessary
+- use `Show`, `For`, `Switch`, and `Match` when they fit naturally
+- use `@stewie-js/router` for all navigation
+- back `Discover` and `Abilities` filtering with query params where useful
+- use route params for Pokemon identity and ability identity
+- use route `load` functions and `useRouteData()` for `Ability Detail` and `Detail`
 - prefer precise reactive bindings over coarse page recomputation
 
-If SSR is available in the chosen app structure, use `@stewie-js/server` hydration-friendly patterns for the initial route output.
-
 ## Suggested File Structure
-
-Adapt this to the repository conventions, but keep responsibilities separated:
 
 ```txt
 src/
   app/
     routes/
       discover/
-      pokemon/
-      species/
+      abilities/
+      ability-detail/
+      pokemon-detail/
   components/
     shell/
     cards/
     data-display/
     motion/
-  styles/
-    tokens/
-    globals/
   lib/
     api/
     mappers/
     view-models/
-  data/
-    mocks/
 ```
-
-## Design Token Setup
-
-Create reusable tokens first:
-
-- color tokens
-- typography scale
-- spacing scale
-- radii
-- shadows
-- motion timings
-- easing curves
-
-Use the palette from `implementation-handoff-plan.md`.
-
-## Component Checklist
-
-Build these reusable components before assembling pages:
-
-- `AppShell`
-- `TopNav`
-- `SearchBar`
-- `FilterChip`
-- `TypeBadge`
-- `PokemonCard`
-- `FeaturedPanel`
-- `SectionFrame`
-- `StatMeter`
-- `AbilityChip`
-- `MoveChip`
-- `QuickFactItem`
-- `TabRail`
-- `EvolutionNode`
-- `EvolutionPath`
-- `VariantCard`
-
-## Stewie-JS Demonstration Ideas
-
-The agent should make these capabilities visible in the final result:
-
-- typing in `Discover` search should update results through fine-grained reactivity
-- toggling chips should update only the dependent UI
-- conditional states should look clean and Stewie-native, not manually orchestrated with sprawling imperative logic
-- route changes should preserve a clean mental model: list -> detail -> species
-- query-backed filters should make URLs shareable and restorable
-- route loaders should keep page data ownership simple
-- dev-mode verification should confirm only affected DOM regions update during interactions
-
-## Layout Rules
-
-The responsive system should be fluid:
-
-- use flexible grid and flex layouts
-- use `clamp()` for type, spacing, and module sizing
-- preserve module identity across breakpoints
-- allow modules to wrap and stack naturally
-- keep the same reading order where possible
-
-Do not solve mobile by removing content.
 
 ## Motion Rules
 
@@ -216,41 +159,28 @@ Implement a consistent motion vocabulary:
 
 - card hover tilt and glow
 - chip activation sweep
-- shared-element transition from `Discover` card to `Detail` hero
+- `Discover` card to `Detail` hero transition
+- `Abilities` card to `Ability Detail` hero transition
+- Pokemon roster card to `Detail` hero transition
 - stat charge animation
 - tab glide underline
-- move chip stagger
-- evolution path draw-in
-
-Recommended implementation priorities:
-
-1. hover and state transitions
-2. staggered entrances
-3. page-level transitions
-
-If browser support or framework constraints limit shared-element transitions, preserve the same intent with a simpler fallback rather than removing motion entirely.
-
-Use Stewie state primitives to drive these effects directly instead of introducing a heavy abstraction layer unless the repository already has one.
 
 ## Data Integration Notes
 
-Use GraphQL PokeAPI entities that map naturally to the pages:
+Use GraphQL PokeAPI entities that map naturally to:
 
 - `pokemon`
-- `pokemonSpecies`
-- `evolutionChain`
-- `types`
-- `moves`
 - `abilities`
+- `moves`
+- `types`
 - `regions`
-
-Prefer a thin mapping layer between API responses and UI components so the UI stays stable if query shapes change.
 
 Recommended URL model:
 
-- `Discover`: query params for search, type, region, sort, maybe page
-- `Detail`: route param for Pokemon identity
-- `Species`: route param for species or evolution-family identity
+- `/`
+- `/abilities`
+- `/abilities/:ability`
+- `/detail/:pokemon`
 
 ## Implementation Order
 
@@ -259,32 +189,20 @@ Recommended URL model:
 3. Build the shell and layout primitives
 4. Build reusable display components
 5. Implement `Discover`
-6. Implement `Detail`
-7. Implement `Species`
-8. Add motion and transitions
-9. Verify responsive parity across breakpoints
-10. Verify reactive granularity with Stewie tooling
-11. Polish spacing, glow, and composition details
+6. Implement `Abilities`
+7. Implement `Ability Detail`
+8. Implement `Detail`
+9. Add motion and transitions
+10. Verify responsive parity across breakpoints
+11. Verify reactive granularity with Stewie tooling
 
 ## Verification Checklist
 
-Before considering the implementation complete, verify:
-
-- all three pages exist
-- all three pages feel like one product
-- the app remains visually strong on desktop, tablet, and mobile
-- `Detail` page parity holds at all breakpoints
-- no major modules disappear on mobile
+- `Discover`, `Abilities`, `Ability Detail`, and `Detail` all exist
+- top nav exposes `Discover` and `Abilities`, not `Detail`
+- clicking a Pokemon card reaches `Detail`
+- clicking an ability reaches `Ability Detail`
+- `Detail` parity holds at all breakpoints
+- `Ability Detail` parity holds at all breakpoints
 - the UI does not regress into an encyclopedia feel
-- animations are present, readable, and not excessive
 - the implementation clearly benefits from Stewie routing/reactivity instead of merely using TSX syntax
-
-## Delivery Expectations
-
-The implementing agent should return:
-
-- a short summary of what was built
-- any assumptions made about Stewie-JS structure
-- notes on responsive behavior
-- notes on animation implementation
-- any gaps where API data was mocked or deferred

@@ -15,13 +15,8 @@ Read these first and treat them as the source of truth:
 - `./design-plan/execution-ready-agent-brief.md`
 - `./design-plan/07-page-discover-responsive.png`
 - `./design-plan/08-page-detail-responsive.png`
-- `./design-plan/09-page-species-responsive.png`
-
-You may use these as supporting concept history if needed:
-
-- `./design-plan/04-concept-anime-magical-with-shell-explorations-board.png`
-- `./design-plan/05-concept-responsive-first-board.png`
-- `./design-plan/06-concept-responsive-mobile-legible-board.png`
+- `./design-plan/10-page-abilities-responsive.png`
+- `./design-plan/11-page-ability-detail-responsive.png`
 
 ## Stewie-JS emphasis
 
@@ -40,7 +35,7 @@ The implementation should strongly demonstrate the framework's actual strengths:
 - SSR/hydration patterns if practical in this repo
 - `@stewie-js/testing` and `@stewie-js/devtools` for verification
 
-Favor Stewie-native state and routing patterns over React-style habits like broad re-render-oriented state ownership.
+Favor Stewie-native state and routing patterns over React-style habits.
 
 ## Product direction
 
@@ -61,6 +56,22 @@ It should not feel like:
 - a dark teal data tool
 - a SaaS admin UI
 
+## Information architecture
+
+Implement these routes:
+
+1. `Discover` at `/`
+2. `Abilities` at `/abilities`
+3. `Ability Detail` at `/abilities/:ability`
+4. `Detail` at `/detail/:pokemon`
+
+Important nav rule:
+
+- `Detail` must not appear in the top nav
+- users reach `Detail` only by clicking a Pokemon card
+
+Do not implement `Species`.
+
 ## Core constraints
 
 - The site must be responsive, not adaptive.
@@ -68,19 +79,11 @@ It should not feel like:
 - Do not hide major content sections at smaller breakpoints.
 - Do not replace desktop patterns with mobile-only alternate patterns for core modules.
 - Components should reflow fluidly through wrapping, stacking, compression, and scaling.
-- Preserve content parity, especially on the `Detail` page.
+- Preserve content parity, especially on the `Detail` and `Ability Detail` pages.
 
-Also ensure the final implementation makes Stewie look like a good choice for this product, not an incidental implementation detail.
+## Required page requirements
 
-## Required pages
-
-Implement at least these three pages:
-
-1. `Discover`
-2. `Detail`
-3. `Species`
-
-### `Discover` page requirements
+### `Discover`
 
 - top navigation shell
 - search input
@@ -89,7 +92,27 @@ Implement at least these three pages:
 - Pokemon card collection
 - supporting quest/discovery modules
 
-### `Detail` page requirements
+### `Abilities`
+
+- top navigation shell
+- hero section introducing abilities
+- search input
+- filter chip rail or grouped categories
+- featured ability cards
+- grouped ability sections
+- preview or CTA into focused ability detail views
+
+### `Ability Detail`
+
+- ability hero / crest
+- effect summary
+- related tags/categories
+- strategy or usage notes
+- Pokemon roster for this ability
+- related abilities
+- return path to `/abilities`
+
+### `Detail`
 
 - hero reveal area
 - Pokemon name and number
@@ -98,44 +121,29 @@ Implement at least these three pages:
 - moves
 - base stats
 - quick facts
-- tabs such as `Overview`, `Moves`, `Habitat`, `Evolution`
-
-### `Species` page requirements
-
-- species identity panel
-- evolution path / sigil route
-- metadata cards
-- related forms / variants
-- supporting descriptors
+- tabs
 
 ## Framework-specific expectations
 
 Use Stewie primitives intentionally:
 
-- use `signal()` for local UI state such as active tabs, hover emphasis, chip states, reveal states, and small animation orchestration
-- use `computed()` for filtered/sorted Pokemon collections and other derived UI outputs
+- use `signal()` for local UI state such as active tabs, hover emphasis, chip states, reveal states, and animation orchestration
+- use `computed()` for filtered/sorted Pokemon collections and filtered ability collections
 - use `batch()` when multiple related updates should land together
 - use `untrack()` where needed to avoid accidental subscriptions in derived logic
-- use `store()` sparingly for shared app state that legitimately spans pages or modules
-- use `Show`, `For`, `Switch`, and `Match` instead of falling back to generic rendering habits when those primitives fit
-- use `@stewie-js/router` for navigation between `Discover`, `Detail`, and `Species`
+- use `store()` sparingly for truly shared app state
+- use `Show`, `For`, `Switch`, and `Match` instead of generic rendering habits when those primitives fit
+- use `@stewie-js/router` for navigation between `Discover`, `Abilities`, `Ability Detail`, and `Detail`
 - back `Discover` search/filter/sort state with query params where practical
-- use route params for Pokemon identity and species identity
+- back `Abilities` search/filter/sort state with query params where practical
+- use route params for Pokemon identity and ability identity
 - use route `load` functions and `useRouteData()` for route-owned data
 - use `resource()` with `Suspense` if in-component async loading states are needed
-- prefer precise reactive bindings over any coarse page recomputation pattern
+- prefer precise reactive bindings over coarse page recomputation
 
-The product should visibly benefit from Stewie's fine-grained updates:
+## Content parity requirements
 
-- chip toggles should update only the affected UI
-- search/sort interactions should feel immediate
-- independent `Detail` modules should remain isolated and predictable
-- route-driven transitions should feel clean and structured
-- list and conditional rendering should read like idiomatic Stewie, not transplanted React habits
-
-## Detail page parity requirements
-
-Across desktop, tablet, and mobile, the `Detail` page must preserve the same underlying content:
+Across desktop, tablet, and mobile, `Detail` must preserve:
 
 - same Pokemon
 - same abilities
@@ -144,24 +152,13 @@ Across desktop, tablet, and mobile, the `Detail` page must preserve the same und
 - same stat labels and values
 - same quick facts fields
 
-The layout may reflow, but the content contract must stay intact.
+Across desktop, tablet, and mobile, `Ability Detail` must preserve:
 
-## Visual system
-
-Follow the palette and direction from `implementation-handoff-plan.md`.
-
-Key style traits:
-
-- warm cream / paper-like base
-- ink-dark text
-- coral, gold, cyan, ember, and green accents
-- heroic typography
-- angled dividers and energy lines
-- aura glows
-- collectible-card framing
-- crisp layered gradients
-
-Keep the design buildable and web-native. Avoid making it feel like a game HUD.
+- same selected ability
+- same effect summary
+- same related tags/categories
+- same Pokemon roster items
+- same related abilities
 
 ## Motion requirements
 
@@ -169,41 +166,32 @@ Implement a consistent, restrained animation system:
 
 - card hover tilt and glow
 - chip activation sweep
-- shared-element or equivalent transition from `Discover` card to `Detail` hero
+- `Discover` card to `Detail` hero transition
+- `Abilities` card to `Ability Detail` hero transition
+- Pokemon roster card to `Detail` hero transition
 - stat charge animation
 - tab glide underline
-- move chip stagger/arc-in
-- evolution path draw-in
 
 On smaller screens, reduce motion distance/intensity while keeping the same motion language.
 
-If true shared-element transitions are not practical in the current stack, create the closest reasonable fallback rather than removing the transition idea entirely.
-
-Drive motion with small local reactive state where possible so interactions remain surgical and easy to reason about.
-
 ## Data integration
-
-The site is based on the GraphQL PokeAPI-style entity model.
 
 Use data that maps naturally to:
 
 - `Pokemon`
-- `PokemonSpecies`
-- `EvolutionChain`
+- `Ability`
 - `Type`
 - `Move`
-- `Ability`
 - `Region`
 
 Use a mapping layer or view-model layer so the UI is not tightly coupled to raw API response shapes.
 
-If full integration is too expensive for this pass, use stable mock data shaped like the final UI contract.
-
 Recommended URL model:
 
-- `Discover`: query params for search, filters, sort, and optional pagination
-- `Detail`: route param for Pokemon slug or id
-- `Species`: route param for species/evolution identity
+- `/`
+- `/abilities`
+- `/abilities/:ability`
+- `/detail/:pokemon`
 
 ## Implementation approach
 
@@ -215,23 +203,13 @@ Recommended order:
 4. build reusable shell and UI primitives
 5. build reusable page modules
 6. implement `Discover`
-7. implement `Detail`
-8. implement `Species`
-9. add motion and transitions
-10. verify responsive behavior and parity across breakpoints
-11. verify the reactive model with Stewie-specific tooling/tests
-12. polish visual details
-
-## Technical expectations
-
-- Respect existing repo conventions
-- Prefer reusable components over page-specific duplication
-- Keep styles organized and token-driven
-- Use fluid sizing with techniques such as `clamp()`
-- Avoid breakpoint-specific content removal for major sections
-- Preserve accessible structure and readable hierarchy
-- If available, enable `@stewie-js/devtools` in development and use it to confirm reactive update granularity
-- If tests are added, prefer `@stewie-js/testing` for component and SSR verification
+7. implement `Abilities`
+8. implement `Ability Detail`
+9. implement `Detail`
+10. add motion and transitions
+11. verify responsive behavior and parity across breakpoints
+12. verify the reactive model with Stewie-specific tooling/tests
+13. polish visual details
 
 ## Final deliverable expectations
 
@@ -239,11 +217,16 @@ When finished, report back with:
 
 - what you implemented
 - where the main files live
-- any assumptions you made about the framework or architecture
 - how responsive behavior is handled
 - how animations/transitions were implemented
 - how Stewie-specific capabilities were used and demonstrated
 - any gaps, mocks, or deferred pieces
 
-Before finishing, verify that the UI still feels anime-inspired and magical rather than encyclopedic.
+Before finishing, verify that:
+
+- `Detail` is not in the top nav
+- `Abilities` is in the top nav
+- clicking a Pokemon card reaches `Detail`
+- clicking an ability reaches `Ability Detail`
+- the UI still feels anime-inspired and magical rather than encyclopedic
 ```

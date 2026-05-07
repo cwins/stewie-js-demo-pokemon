@@ -1,19 +1,13 @@
 import type { JSXElement } from '@stewie-js/core'
-import { Show } from '@stewie-js/core'
 import { useLocation, useRouter } from '@stewie-js/router'
-import { appState } from '../state/app-state.js'
 
 function isActive(pathname: string, itemPath: string): boolean {
   if (itemPath === '/discover') {
     return pathname === '/' || pathname === '/discover'
   }
 
-  if (itemPath === '/pokemon') {
-    return pathname.startsWith('/pokemon/')
-  }
-
-  if (itemPath === '/species') {
-    return pathname.startsWith('/species/')
+  if (itemPath === '/abilities') {
+    return pathname.startsWith('/abilities')
   }
 
   return pathname === itemPath
@@ -40,13 +34,6 @@ function NavLink({ to, label }: { to: string; label: string }): JSXElement {
 
 export function TopNav(): JSXElement {
   const router = useRouter()
-  const location = useLocation()
-  const detailPath = () => location.pathname.startsWith('/pokemon/')
-    ? location.pathname
-    : `/pokemon/${appState.selectedPokemonSlug}`
-  const speciesPath = () => location.pathname.startsWith('/species/')
-    ? location.pathname
-    : `/species/${appState.selectedSpeciesSlug}`
 
   return (
     <header class="top-nav">
@@ -65,26 +52,14 @@ export function TopNav(): JSXElement {
 
         <nav class="top-nav__links" aria-label="Primary">
           <NavLink to="/discover" label="Discover" />
-          <NavLink to={detailPath()} label="Detail" />
-          <NavLink to={speciesPath()} label="Species" />
+          <NavLink to="/abilities" label="Abilities" />
         </nav>
 
         <div class="top-nav__actions">
           <button class="top-nav__icon" aria-label="Search">⌕</button>
           <button class="top-nav__icon" aria-label="Alerts">◔</button>
-          <button class="top-nav__avatar" aria-label="Trainer profile">
-            <span>PK</span>
-          </button>
         </div>
       </div>
-
-      <Show when={() => appState.navOpen}>
-        <div class="top-nav__mobile-sheet">
-          <NavLink to="/discover" label="Discover" />
-          <NavLink to={detailPath()} label="Detail" />
-          <NavLink to={speciesPath()} label="Species" />
-        </div>
-      </Show>
     </header>
   )
 }
