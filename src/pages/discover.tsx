@@ -21,6 +21,8 @@ interface QuerySyncRouter {
   _setLocation: (url: string, params?: Record<string, string>) => void
 }
 
+const DISCOVER_SEARCH_INPUT_ID = 'discover-search-input'
+
 export function DiscoverPage(): JSXElement {
   const data = useRouteData<DiscoverPageData>()
   const router = useRouter()
@@ -82,17 +84,37 @@ export function DiscoverPage(): JSXElement {
     })
   })
 
-  const updateQuery = (patch: Partial<{ q: string; type: string; sort: string }>): void => {
+  const updateQuery = (
+    patch: Partial<{ q: string; type: string; sort: string }>,
+    options?: { preserveSearchFocus?: boolean },
+  ): void => {
     const next = {
       q: patch.q ?? query.q ?? '',
       type: patch.type ?? query.type ?? 'all',
       sort: patch.sort ?? query.sort ?? 'pokedex',
     }
+    const activeInput = typeof document !== 'undefined'
+      && document.activeElement instanceof HTMLInputElement
+      && document.activeElement.id === DISCOVER_SEARCH_INPUT_ID
+      ? {
+          start: document.activeElement.selectionStart ?? next.q.length,
+          end: document.activeElement.selectionEnd ?? next.q.length,
+        }
+      : null
     const nextUrl = buildDiscoverUrl(next, router.location.pathname)
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', nextUrl)
     }
     ;(router as unknown as QuerySyncRouter)._setLocation(nextUrl)
+
+    if (options?.preserveSearchFocus && activeInput && typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        const input = document.getElementById(DISCOVER_SEARCH_INPUT_ID)
+        if (!(input instanceof HTMLInputElement)) return
+        input.focus()
+        input.setSelectionRange(activeInput.start, activeInput.end)
+      })
+    }
   }
 
   return (
@@ -107,11 +129,12 @@ export function DiscoverPage(): JSXElement {
               kicker="Find the next legend."
             />
             <SearchBar
+              inputId={DISCOVER_SEARCH_INPUT_ID}
               value={searchDraft}
               onInput={(value) => {
                 batch(() => {
                   searchDraft.set(value)
-                  updateQuery({ q: value })
+                  updateQuery({ q: value }, { preserveSearchFocus: true })
                 })
               }}
               onAction={() => updateQuery({ q: searchDraft() })}

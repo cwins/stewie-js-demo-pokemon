@@ -79,12 +79,14 @@ export function SearchBar(props: {
   onInput: (value: string) => void
   onAction: () => void
   placeholder?: string
+  inputId?: string
 }): JSXElement {
   return (
     <div class="search-bar">
       <div class="search-bar__field">
         <span class="search-bar__icon" aria-hidden="true">⌕</span>
         <input
+          id={props.inputId}
           class="search-bar__input"
           type="search"
           placeholder={props.placeholder ?? 'Search Pokemon, types, abilities...'}
