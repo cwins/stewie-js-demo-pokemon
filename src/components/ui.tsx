@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, effect } from '@stewie-js/core'
+import { For, Show, effect } from '@stewie-js/core'
 import type { JSXElement } from '@stewie-js/core'
 import { useLocation, useRouter } from '@stewie-js/router'
 import type {
@@ -34,7 +34,6 @@ export function AppShell({ children }: { children: JSXElement }): JSXElement {
 }
 
 export function PageIntro(props: {
-  number: string
   title: string
   subtitle: string
   kicker?: string
@@ -42,7 +41,6 @@ export function PageIntro(props: {
 }): JSXElement {
   return (
     <header class={`page-intro ${props.className ?? ''}`}>
-      <span class="page-intro__number">{props.number}</span>
       <div>
         <Show when={Boolean(props.kicker)}>
           <p class="page-intro__kicker">{props.kicker}</p>
@@ -79,14 +77,12 @@ export function SearchBar(props: {
   onInput: (value: string) => void
   onAction: () => void
   placeholder?: string
-  inputId?: string
 }): JSXElement {
   return (
     <div class="search-bar">
       <div class="search-bar__field">
         <span class="search-bar__icon" aria-hidden="true">⌕</span>
         <input
-          id={props.inputId}
           class="search-bar__input"
           type="search"
           placeholder={props.placeholder ?? 'Search Pokemon, types, abilities...'}
@@ -335,40 +331,7 @@ export function TabRail(props: {
           </button>
         )}
       </For>
-      <span
-        class="tab-rail__glider"
-        style={() => `transform:translateX(${props.tabs.findIndex((tab) => tab.value === props.value()) * 100}%); width:${100 / props.tabs.length}%;`}
-      />
     </div>
-  )
-}
-
-export function NarrativePanel(props: {
-  title: string
-  body: string
-  tab: string
-  loading: () => boolean
-  loreLine?: string
-}): JSXElement {
-  return (
-    <SectionFrame title={props.title} subtitle="Reactive tab focus and route-owned storytelling." tone="midnight">
-      <div class="narrative-panel">
-        <Switch>
-          <Match when={() => props.loading()}>
-            <p class="narrative-panel__loading">Reading fresh field notes...</p>
-          </Match>
-          <Match when={true}>
-            <div>
-              <p class="narrative-panel__body">{props.body}</p>
-              <Show when={Boolean(props.loreLine)}>
-                <p class="narrative-panel__lore">{props.loreLine ?? ''}</p>
-              </Show>
-            </div>
-          </Match>
-        </Switch>
-        <span class="narrative-panel__tab">{props.tab}</span>
-      </div>
-    </SectionFrame>
   )
 }
 
@@ -451,7 +414,6 @@ export function AbilityHero(props: {
       <div class="ability-hero__copy">
         <button class="ability-hero__back" onClick={props.onBack}>‹ All Abilities</button>
         <PageIntro
-          number={`#${String(props.ability.id).padStart(2, '0')}`}
           title={props.ability.name}
           subtitle={props.ability.summary}
         />

@@ -1,11 +1,10 @@
-import { batch, computed, defineResource, reactiveScope, signal, useResource, For } from '@stewie-js/core'
+import { batch, computed, reactiveScope, signal, For, Match, Show, Switch } from '@stewie-js/core'
 import type { JSXElement } from '@stewie-js/core'
 import { useRouteData, useRouter } from '@stewie-js/router'
 import {
   AbilityChip,
   AppShell,
   MoveChip,
-  NarrativePanel,
   PageIntro,
   QuickFactItem,
   SectionFrame,
@@ -14,17 +13,9 @@ import {
   TypeBadge,
 } from '../components/ui.js'
 import type { PokemonCardModel } from '../data/pokedex.js'
-import { appState, rememberAbilityTransition } from '../state/app-state.js'
-
-const detailLoreResource = defineResource(async (source: string, _opts: { signal: AbortSignal }) => {
-  const [slug, tab] = source.split(':')
-  await new Promise<void>((resolve) => setTimeout(resolve, 120))
-  return `${slug.toUpperCase()} field note: ${tab} focus sharpened for the current reveal.`
-}, { id: 'detail-lore' })
+import { appState, rememberAbilityTransition, rememberCardTransition } from '../state/app-state.js'
 
 const DETAIL_TABS = [
-  { value: 'overview', label: 'Overview' },
-  { value: 'moves', label: 'Moves' },
   { value: 'habitat', label: 'Habitat' },
   { value: 'evolution', label: 'Evolution' },
 ] as const
@@ -38,21 +29,19 @@ export function DetailPage(): JSXElement {
     appState.selectedAbilitySlug = pokemon.abilities[0]?.slug ?? 'blaze'
   })
 
-  let activeTab!: ReturnType<typeof signal<'overview' | 'moves' | 'habitat' | 'evolution'>>
+  let activeTab!: ReturnType<typeof signal<'habitat' | 'evolution'>>
   let totalStats!: ReturnType<typeof computed<number>>
   reactiveScope(() => {
-    activeTab = signal<'overview' | 'moves' | 'habitat' | 'evolution'>('overview')
+    activeTab = signal<'habitat' | 'evolution'>('habitat')
     totalStats = computed(() => Object.values(pokemon.stats).reduce((sum, value) => sum + value, 0))
   })
-
-  const lore = useResource(detailLoreResource, () => `${pokemon.slug}:${activeTab()}`)
 
   return (
     <AppShell>
       <div class="page page--detail">
         <section class="detail-hero" style={`--accent:${pokemon.accent}; --glow:${pokemon.glow};`}>
           <div class="detail-hero__copy">
-            <PageIntro number="03" title={pokemon.name} subtitle={pokemon.classification} kicker={pokemon.number} />
+            <PageIntro title={pokemon.name} subtitle={pokemon.classification} kicker={pokemon.number} />
             <div class="detail-hero__types">
               <For each={pokemon.types}>
                 {(getType) => <TypeBadge type={getType()} />}
@@ -141,16 +130,54 @@ export function DetailPage(): JSXElement {
         <TabRail
           value={activeTab}
           tabs={[...DETAIL_TABS]}
-          onChange={(value) => activeTab.set(value as 'overview' | 'moves' | 'habitat' | 'evolution')}
+          onChange={(value) => activeTab.set(value as 'habitat' | 'evolution')}
         />
 
-        <NarrativePanel
-          title={pokemon.tabs[activeTab()].title}
-          body={pokemon.tabs[activeTab()].body}
-          tab={activeTab()}
-          loading={() => lore.loading()}
-          loreLine={lore.data()}
-        />
+        <Switch>
+          <Match when={() => activeTab() === 'habitat'}>
+            <SectionFrame title={pokemon.tabs.habitat.title} tone="midnight">
+              <div class="narrative-panel">
+                <div>
+                  <p class="narrative-panel__body">{pokemon.tabs.habitat.body}</p>
+                </div>
+              </div>
+            </SectionFrame>
+          </Match>
+          <Match when={true}>
+            <SectionFrame title={pokemon.tabs.evolution.title} tone="midnight">
+              <div class="narrative-panel">
+                <div>
+                  <p class="narrative-panel__body">{pokemon.tabs.evolution.body}</p>
+                  <Show when={() => (pokemon.evolutionLine?.length ?? 0) > 0}>
+                    <div class="evolution-path detail-evolution-path">
+                      <For each={() => pokemon.evolutionLine ?? []}>
+                        {(getStep, getIndex) => (
+                          <div class="evolution-path__step">
+                            <button
+                              class={() => `evolution-node${getStep().isCurrent ? ' is-active' : ''}`}
+                              onClick={() => {
+                                rememberCardTransition(getStep().slug, pokemon.accent)
+                                void router.navigate(`/detail/${getStep().slug}`)
+                              }}
+                            >
+                              <span class="evolution-node__ring" aria-hidden="true" />
+                              <img src={getStep().image} alt={getStep().name} />
+                              <small>{getStep().number}</small>
+                              <strong>{getStep().name}</strong>
+                            </button>
+                            <Show when={() => getIndex() < (pokemon.evolutionLine?.length ?? 0) - 1}>
+                              <span class="evolution-path__arrow" aria-hidden="true">→</span>
+                            </Show>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+                </div>
+              </div>
+            </SectionFrame>
+          </Match>
+        </Switch>
       </div>
     </AppShell>
   )

@@ -1,4 +1,4 @@
-import { batch, computed, effect, reactiveScope, signal, untrack, Show, For } from '@stewie-js/core'
+import { computed, effect, reactiveScope, signal, Show, For } from '@stewie-js/core'
 import type { JSXElement } from '@stewie-js/core'
 import { useQuery, useRouteData, useRouter } from '@stewie-js/router'
 import { AppShell, ExploreCard, FeaturedPanel, FilterChip, PageIntro, PokemonCard, QuestCardItem, SearchBar, SectionFrame, SortControl } from '../components/ui.js'
@@ -17,18 +17,15 @@ function buildDiscoverUrl(query: { q?: string; type?: string; sort?: string }, p
   return suffix ? `${pathname}?${suffix}` : pathname
 }
 
-interface QuerySyncRouter {
-  _setLocation: (url: string, params?: Record<string, string>) => void
-}
-
-const DISCOVER_SEARCH_INPUT_ID = 'discover-search-input'
-
 export function DiscoverPage(): JSXElement {
   const data = useRouteData<DiscoverPageData>()
   const router = useRouter()
   const query = useQuery<{ q: string; type: string; sort: string }>()
 
   let searchDraft!: ReturnType<typeof signal<string>>
+  let committedSearch!: ReturnType<typeof signal<string>>
+  let activeType!: ReturnType<typeof signal<string>>
+  let activeSort!: ReturnType<typeof signal<DiscoverSort>>
   let hoveredSlug!: ReturnType<typeof signal<string | null>>
   let discoverPokemon!: ReturnType<typeof signal<PokemonCardModel[]>>
   let filteredPokemon!: ReturnType<typeof computed<PokemonCardModel[]>>
@@ -36,19 +33,15 @@ export function DiscoverPage(): JSXElement {
   let discoverRequestId = 0
   reactiveScope(() => {
     searchDraft = signal(query.q ?? '')
+    committedSearch = signal(query.q ?? '')
+    activeType = signal(query.type ?? 'all')
+    activeSort = signal((query.sort ?? 'pokedex') as DiscoverSort)
     hoveredSlug = signal<string | null>(null)
     discoverPokemon = signal(getOfflineDiscoverPokemon(query.q ?? '', query.type ?? 'all'))
 
     effect(() => {
-      const next = query.q ?? ''
-      if (untrack(() => searchDraft()) !== next) {
-        searchDraft.set(next)
-      }
-    })
-
-    effect(() => {
-      const q = query.q ?? ''
-      const type = query.type ?? 'all'
+      const q = committedSearch()
+      const type = activeType()
       const fallback = getOfflineDiscoverPokemon(q, type)
       const requestId = ++discoverRequestId
 
@@ -61,7 +54,7 @@ export function DiscoverPage(): JSXElement {
     })
 
     filteredPokemon = computed(() => {
-      const sort = (query.sort ?? 'pokedex') as DiscoverSort
+      const sort = activeSort()
       const sourcePokemon = discoverPokemon()
 
       return [...sourcePokemon].sort((left, right) => {
@@ -84,36 +77,15 @@ export function DiscoverPage(): JSXElement {
     })
   })
 
-  const updateQuery = (
-    patch: Partial<{ q: string; type: string; sort: string }>,
-    options?: { preserveSearchFocus?: boolean },
-  ): void => {
+  const updateQuery = (patch: Partial<{ q: string; type: string; sort: string }>): void => {
     const next = {
-      q: patch.q ?? query.q ?? '',
-      type: patch.type ?? query.type ?? 'all',
-      sort: patch.sort ?? query.sort ?? 'pokedex',
+      q: patch.q ?? committedSearch(),
+      type: patch.type ?? activeType(),
+      sort: patch.sort ?? activeSort(),
     }
-    const activeInput = typeof document !== 'undefined'
-      && document.activeElement instanceof HTMLInputElement
-      && document.activeElement.id === DISCOVER_SEARCH_INPUT_ID
-      ? {
-          start: document.activeElement.selectionStart ?? next.q.length,
-          end: document.activeElement.selectionEnd ?? next.q.length,
-        }
-      : null
     const nextUrl = buildDiscoverUrl(next, router.location.pathname)
     if (typeof window !== 'undefined') {
       window.history.replaceState(null, '', nextUrl)
-    }
-    ;(router as unknown as QuerySyncRouter)._setLocation(nextUrl)
-
-    if (options?.preserveSearchFocus && activeInput && typeof window !== 'undefined') {
-      window.requestAnimationFrame(() => {
-        const input = document.getElementById(DISCOVER_SEARCH_INPUT_ID)
-        if (!(input instanceof HTMLInputElement)) return
-        input.focus()
-        input.setSelectionRange(activeInput.start, activeInput.end)
-      })
     }
   }
 
@@ -123,29 +95,28 @@ export function DiscoverPage(): JSXElement {
         <section class="discover-hero">
           <div class="discover-hero__copy">
             <PageIntro
-              number={data.heroNumber}
               title={data.heroTitle}
               subtitle={data.heroSubtitle}
               kicker="Find the next legend."
             />
             <SearchBar
-              inputId={DISCOVER_SEARCH_INPUT_ID}
               value={searchDraft}
-              onInput={(value) => {
-                batch(() => {
-                  searchDraft.set(value)
-                  updateQuery({ q: value }, { preserveSearchFocus: true })
-                })
+              onInput={(value) => searchDraft.set(value)}
+              onAction={() => {
+                committedSearch.set(searchDraft())
+                updateQuery({ q: searchDraft() })
               }}
-              onAction={() => updateQuery({ q: searchDraft() })}
             />
             <div class="discover-hero__chips">
               <For each={TYPE_OPTIONS}>
                 {(getOption) => (
                   <FilterChip
                     option={getOption()}
-                    active={() => (query.type ?? 'all') === getOption().value}
-                    onToggle={() => updateQuery({ type: getOption().value })}
+                    active={() => activeType() === getOption().value}
+                    onToggle={() => {
+                      activeType.set(getOption().value)
+                      updateQuery({ type: getOption().value })
+                    }}
                   />
                 )}
               </For>
@@ -176,8 +147,11 @@ export function DiscoverPage(): JSXElement {
             <div class="section-toolbar">
               <p>{() => `${filteredPokemon().length} active encounters`}</p>
               <SortControl
-                value={() => (query.sort ?? 'pokedex') as DiscoverSort}
-                onChange={(value) => updateQuery({ sort: value })}
+                value={activeSort}
+                onChange={(value) => {
+                  activeSort.set(value)
+                  updateQuery({ sort: value })
+                }}
               />
             </div>
 

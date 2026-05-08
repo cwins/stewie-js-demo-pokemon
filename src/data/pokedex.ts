@@ -78,6 +78,7 @@ export interface PokemonCardModel {
   moves: Array<{ name: string; type: PokemonType; pp: string; summary: string }>
   quickFacts: Array<{ label: string; value: string }>
   tabs: Record<'overview' | 'moves' | 'habitat' | 'evolution', { title: string; body: string }>
+  evolutionLine?: Array<{ id: number; slug: string; name: string; number: string; image: string; isCurrent: boolean }>
 }
 
 export interface AbilityUserModel {
@@ -109,7 +110,6 @@ export interface AbilityModel {
 
 export interface DiscoverPageData {
   mode: 'discover'
-  heroNumber: string
   heroTitle: string
   heroSubtitle: string
   featuredSlug: string
@@ -119,7 +119,6 @@ export interface DiscoverPageData {
 }
 
 export interface AbilitiesPageData {
-  heroNumber: string
   heroTitle: string
   heroSubtitle: string
   featuredAbilitySlug: string
@@ -158,6 +157,64 @@ interface LivePokemonStatEntry {
   } | null
 }
 
+interface LivePokemonSpeciesEvolutionEntry {
+  evolved_species_id?: number | null
+  min_level?: number | null
+  min_happiness?: number | null
+  min_affection?: number | null
+  min_beauty?: number | null
+  needs_overworld_rain?: boolean | null
+  time_of_day?: string | null
+  evolutiontrigger?: {
+    name?: string | null
+  } | null
+  item?: {
+    name?: string | null
+  } | null
+  location?: {
+    name?: string | null
+  } | null
+}
+
+interface LivePokemonSpeciesNode {
+  name?: string | null
+  pokemonhabitat?: {
+    name?: string | null
+  } | null
+  pokemonshape?: {
+    name?: string | null
+  } | null
+  generation?: {
+    name?: string | null
+  } | null
+  growthrate?: {
+    name?: string | null
+  } | null
+  evolves_from_species_id?: number | null
+  capture_rate?: number | null
+  gender_rate?: number | null
+  hatch_counter?: number | null
+  base_happiness?: number | null
+  pokemonspeciesnames?: Array<{
+    name?: string | null
+    genus?: string | null
+  }> | null
+  pokemonspeciesflavortexts?: Array<{
+    flavor_text?: string | null
+    version?: {
+      name?: string | null
+    } | null
+  }> | null
+  evolutionchain?: {
+    pokemonspecies?: Array<{
+      id?: number | null
+      name?: string | null
+      evolves_from_species_id?: number | null
+    }> | null
+  } | null
+  pokemonevolutions?: LivePokemonSpeciesEvolutionEntry[] | null
+}
+
 interface LivePokemonNode {
   id: number
   name: string
@@ -168,6 +225,7 @@ interface LivePokemonNode {
   pokemonabilities?: LivePokemonAbilityEntry[] | null
   pokemonmoves?: LivePokemonMoveEntry[] | null
   pokemonstats?: LivePokemonStatEntry[] | null
+  pokemonspecy?: LivePokemonSpeciesNode | null
 }
 
 const artwork = (id: number): string =>
@@ -862,6 +920,61 @@ query PokemonDetail($name: String!) {
         }
       }
     }
+    pokemonspecy {
+      name
+      pokemonhabitat {
+        name
+      }
+      pokemonshape {
+        name
+      }
+      generation {
+        name
+      }
+      growthrate {
+        name
+      }
+      evolves_from_species_id
+      capture_rate
+      gender_rate
+      hatch_counter
+      base_happiness
+      pokemonspeciesnames(where: { language: { name: { _eq: "en" } } }, limit: 1) {
+        name
+        genus
+      }
+      pokemonspeciesflavortexts(where: { language: { name: { _eq: "en" } } }, limit: 3) {
+        flavor_text
+        version {
+          name
+        }
+      }
+      evolutionchain {
+        pokemonspecies(order_by: { id: asc }) {
+          id
+          name
+          evolves_from_species_id
+        }
+      }
+      pokemonevolutions(order_by: { id: asc }) {
+        evolved_species_id
+        min_level
+        min_happiness
+        min_affection
+        min_beauty
+        needs_overworld_rain
+        time_of_day
+        evolutiontrigger {
+          name
+        }
+        item {
+          name
+        }
+        location {
+          name
+        }
+      }
+    }
   }
 }
 `
@@ -881,6 +994,133 @@ function toTitleCase(value: string): string {
     .filter(Boolean)
     .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
     .join(' ')
+}
+
+function cleanFlavorText(value?: string | null): string | undefined {
+  if (!value) return undefined
+  return value.replace(/[\n\f]+/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function formatLabel(value?: string | null): string | undefined {
+  if (!value) return undefined
+  return toTitleCase(value)
+}
+
+function formatGeneration(value?: string | null): string | undefined {
+  if (!value) return undefined
+  return value.replace('generation-', 'Generation ').replace(/\b([ivx]+)$/i, (_, roman: string) => roman.toUpperCase())
+}
+
+function formatGenderRatio(genderRate?: number | null): string {
+  if (genderRate === null || genderRate === undefined) return 'Unknown'
+  if (genderRate < 0) return 'Genderless'
+  const female = Math.round((genderRate / 8) * 100)
+  const male = 100 - female
+  return `${male}% M / ${female}% F`
+}
+
+function describeEvolutionTrigger(entry: LivePokemonSpeciesEvolutionEntry | undefined): string | undefined {
+  if (!entry) return undefined
+
+  const parts: string[] = []
+  const trigger = formatLabel(entry.evolutiontrigger?.name)
+
+  if (trigger === 'Level Up' && entry.min_level) {
+    parts.push(`Evolves by level up at ${entry.min_level}`)
+  } else if (trigger) {
+    parts.push(`Evolution trigger: ${trigger}`)
+  }
+
+  if (entry.item?.name) {
+    parts.push(`uses ${formatLabel(entry.item.name)}`)
+  }
+  if (entry.location?.name) {
+    parts.push(`at ${formatLabel(entry.location.name)}`)
+  }
+  if (entry.time_of_day) {
+    parts.push(`during the ${entry.time_of_day}`)
+  }
+  if (entry.needs_overworld_rain) {
+    parts.push('while it is raining')
+  }
+  if (entry.min_happiness) {
+    parts.push(`with high happiness (${entry.min_happiness})`)
+  }
+  if (entry.min_affection) {
+    parts.push(`with affection ${entry.min_affection}+`)
+  }
+  if (entry.min_beauty) {
+    parts.push(`with beauty ${entry.min_beauty}+`)
+  }
+
+  return parts.length ? `${parts.join(', ')}.` : undefined
+}
+
+function speciesLabelFromLive(live: LivePokemonNode): string | undefined {
+  return live.pokemonspecy?.pokemonspeciesnames?.[0]?.genus ?? undefined
+}
+
+function liveSpotlightFromSpecies(live: LivePokemonNode): string | undefined {
+  return cleanFlavorText(live.pokemonspecy?.pokemonspeciesflavortexts?.[0]?.flavor_text)
+}
+
+function buildEvolutionLine(live: LivePokemonNode, fallback?: PokemonCardModel['evolutionLine']): PokemonCardModel['evolutionLine'] {
+  const chain = live.pokemonspecy?.evolutionchain?.pokemonspecies
+  if (!chain?.length) return fallback
+
+  const steps = chain
+    .filter((entry): entry is { id: number; name: string; evolves_from_species_id?: number | null } => Boolean(entry?.id && entry?.name))
+    .map((entry) => ({
+      id: entry.id,
+      slug: entry.name,
+      name: toTitleCase(entry.name),
+      number: `#${String(entry.id).padStart(3, '0')}`,
+      image: artwork(entry.id),
+      isCurrent: entry.name === live.name,
+    }))
+
+  return steps.length ? steps : fallback
+}
+
+function buildPlaceholderPokemonModel(slug: string): PokemonCardModel {
+  const title = toTitleCase(slug)
+  return {
+    id: 0,
+    slug,
+    name: title,
+    number: '#???',
+    types: ['normal'],
+    accent: '#a88157',
+    glow: '#d8b89a',
+    image: artwork(132),
+    discovery: `Placeholder route for ${title}.`,
+    classification: 'Pokemon',
+    habitat: 'Unknown Habitat',
+    region: 'Unknown Region',
+    auraRank: 50,
+    spotlight: `${title} is loading from the live roster for this detail route.`,
+    trainerCallout: 'Live route placeholder.',
+    stats: { hp: 50, attack: 50, defense: 50, spAtk: 50, spDef: 50, speed: 50 },
+    abilities: [],
+    moves: [],
+    quickFacts: [
+      { label: 'Height', value: 'Unknown' },
+      { label: 'Weight', value: 'Unknown' },
+      { label: 'Habitat', value: 'Unknown' },
+      { label: 'Generation', value: 'Unknown' },
+      { label: 'Base Exp', value: 'Unknown' },
+      { label: 'Growth Rate', value: 'Unknown' },
+      { label: 'Gender Ratio', value: 'Unknown' },
+      { label: 'Capture Rate', value: 'Unknown' },
+    ],
+    tabs: {
+      overview: { title: `${title} Overview`, body: `${title} is loading from the live GraphQL roster.` },
+      moves: { title: `${title} Moves`, body: `${title}'s move details will appear above once loaded.` },
+      habitat: { title: 'Habitat', body: `${title}'s habitat details are not available yet.` },
+      evolution: { title: 'Evolution', body: `${title}'s evolution details are not available yet.` },
+    },
+    evolutionLine: [],
+  }
 }
 
 function firstEffectText(texts?: AbilityEffectText[] | null): string | undefined {
@@ -903,14 +1143,71 @@ function getLiveTypes(entries?: LivePokemonTypeEntry[] | null, fallback?: Pokemo
 }
 
 function buildGenericQuickFacts(live: LivePokemonNode): PokemonCardModel['quickFacts'] {
+  const species = live.pokemonspecy
+  const habitat = formatLabel(species?.pokemonhabitat?.name) ?? 'Unknown'
+  const generation = formatGeneration(species?.generation?.name) ?? 'Unknown'
+  const growthRate = formatLabel(species?.growthrate?.name) ?? 'Unknown'
+
   return [
     { label: 'Height', value: live.height ? `${(live.height / 10).toFixed(1)} m` : 'Unknown' },
     { label: 'Weight', value: live.weight ? `${(live.weight / 10).toFixed(1)} kg` : 'Unknown' },
-    { label: 'Habitat', value: 'Unknown' },
-    { label: 'Catch Rate', value: 'Unknown' },
+    { label: 'Habitat', value: habitat },
+    { label: 'Generation', value: generation },
     { label: 'Base Exp', value: live.base_experience ? String(live.base_experience) : 'Unknown' },
-    { label: 'Temper', value: 'Uncharted' },
+    { label: 'Growth Rate', value: growthRate },
+    { label: 'Gender Ratio', value: formatGenderRatio(species?.gender_rate) },
+    { label: 'Capture Rate', value: species?.capture_rate ? String(species.capture_rate) : 'Unknown' },
   ]
+}
+
+function buildLiveNarratives(live: LivePokemonNode, title: string, fallback?: PokemonCardModel['tabs']): PokemonCardModel['tabs'] {
+  const species = live.pokemonspecy
+  if (!species) {
+    return fallback ?? {
+      overview: { title: `${title} Overview`, body: `${title} was loaded from the live GraphQL roster and mapped into the demo's premium presentation layer.` },
+      moves: { title: `${title} Moves`, body: `A compact move kit keeps this imported profile usable even when the source roster extends beyond the original mock set.` },
+      habitat: { title: `${title} Habitat`, body: `Some ecological details are not surfaced by the current endpoint, so this route stays intentionally generic for live-only arrivals.` },
+      evolution: { title: `${title} Growth`, body: `Live Discover results can now open directly into a working detail route, even for Pokemon outside the original curated lineup.` },
+    }
+  }
+
+  const flavorText = cleanFlavorText(species.pokemonspeciesflavortexts?.[0]?.flavor_text)
+  const habitat = formatLabel(species.pokemonhabitat?.name) ?? 'Unknown habitat'
+  const shape = formatLabel(species.pokemonshape?.name) ?? 'Unknown form'
+  const generation = formatGeneration(species.generation?.name) ?? 'Unknown generation'
+  const growthRate = formatLabel(species.growthrate?.name) ?? 'Unknown growth rate'
+  const genus = species.pokemonspeciesnames?.[0]?.genus ?? fallback?.overview?.title ?? 'Pokemon'
+  const chainNames = (species.evolutionchain?.pokemonspecies ?? [])
+    .map((entry) => formatLabel(entry.name))
+    .filter((value): value is string => Boolean(value))
+  const incomingEvolution = describeEvolutionTrigger(species.pokemonevolutions?.[0])
+
+  const habitatBodyParts = [
+    `${title} is classified as the ${genus}, typically associated with ${habitat.toLowerCase()} habitat and a ${shape.toLowerCase()} body shape.`,
+    `${generation} data lists a ${growthRate.toLowerCase()} growth rate for this line.`,
+    flavorText,
+  ].filter((value): value is string => Boolean(value))
+
+  const evolutionBodyParts = [
+    chainNames.length ? `Its known chain runs ${chainNames.join(' → ')}.` : undefined,
+    species.evolves_from_species_id
+      ? `${title} is a middle or later-stage evolution in its family.`
+      : `This species begins its family's visible evolution line.`,
+    incomingEvolution,
+  ].filter((value): value is string => Boolean(value))
+
+  return {
+    overview: fallback?.overview ?? { title: `${title} Overview`, body: flavorText ?? `${title} is represented here with live species data and a focused combat profile.` },
+    moves: fallback?.moves ?? { title: `${title} Moves`, body: `${title}'s move list is surfaced above as the primary battle kit for this profile.` },
+    habitat: {
+      title: habitat,
+      body: habitatBodyParts.join(' '),
+    },
+    evolution: {
+      title: 'Evolution Line',
+      body: evolutionBodyParts.join(' '),
+    },
+  }
 }
 
 function buildGenericPokemonModelFromLive(live: LivePokemonNode, fallback?: PokemonCardModel): PokemonCardModel {
@@ -967,12 +1264,8 @@ function buildGenericPokemonModelFromLive(live: LivePokemonNode, fallback?: Poke
     abilities: [],
     moves: [],
     quickFacts: buildGenericQuickFacts(live),
-    tabs: {
-      overview: { title: `${title} Overview`, body: `${title} was loaded from the live GraphQL roster and mapped into the demo's premium presentation layer.` },
-      moves: { title: `${title} Moves`, body: `A compact move kit keeps this imported profile usable even when the source roster extends beyond the original mock set.` },
-      habitat: { title: `${title} Habitat`, body: `Some ecological details are not surfaced by the current endpoint, so this route stays intentionally generic for live-only arrivals.` },
-      evolution: { title: `${title} Growth`, body: `Live Discover results can now open directly into a working detail route, even for Pokemon outside the original curated lineup.` },
-    },
+    tabs: buildLiveNarratives(live, title),
+    evolutionLine: buildEvolutionLine(live),
   }
 
   const statsByName = new Map((live.pokemonstats ?? []).map((entry) => [entry?.stat?.name ?? '', entry?.base_stat ?? 50]))
@@ -988,9 +1281,14 @@ function buildGenericPokemonModelFromLive(live: LivePokemonNode, fallback?: Poke
     glow: fallback?.glow ?? visuals.glow,
     image: artwork(live.id),
     auraRank: Math.min(100, live.base_experience ?? base.auraRank),
+    classification: speciesLabelFromLive(live) ?? base.classification,
+    habitat: formatLabel(live.pokemonspecy?.pokemonhabitat?.name) ?? base.habitat,
+    spotlight: liveSpotlightFromSpecies(live) ?? base.spotlight,
     abilities: liveAbilities?.length ? liveAbilities : base.abilities,
     moves: genericMoves?.length ? genericMoves : base.moves,
-    quickFacts: buildGenericQuickFacts(live).map((fact, index) => base.quickFacts[index] ? { ...base.quickFacts[index], value: fact.value } : fact),
+    quickFacts: buildGenericQuickFacts(live),
+    tabs: buildLiveNarratives(live, title, base.tabs),
+    evolutionLine: buildEvolutionLine(live, base.evolutionLine),
     stats: {
       hp: Number(statsByName.get('hp') ?? base.stats.hp),
       attack: Number(statsByName.get('attack') ?? base.stats.attack),
@@ -1170,7 +1468,6 @@ function filterOfflineDiscoverPokemon(search: string, type: string): PokemonCard
 export async function loadDiscoverData(mode: 'discover' = 'discover'): Promise<DiscoverPageData> {
   return {
     mode,
-    heroNumber: '01',
     heroTitle: 'Discover',
     heroSubtitle: 'Find. Challenge. Be legendary.',
     featuredSlug: 'pikachu',
@@ -1204,7 +1501,6 @@ export async function loadDiscoverPokemon(search: string, type: string): Promise
 
 export async function loadAbilitiesData(): Promise<AbilitiesPageData> {
   const fallback = {
-    heroNumber: '02',
     heroTitle: 'Abilities Atlas',
     heroSubtitle: 'Powers. Traits. Battle-changing effects.',
     featuredAbilitySlug: 'blaze',
@@ -1265,7 +1561,7 @@ export async function loadPokemonDetail(slug: string): Promise<PokemonCardModel>
 export function getPokemonBySlug(slug: string): PokemonCardModel {
   return POKEMON.find((pokemon) => pokemon.slug === slug)
     ?? livePokemonModels.get(slug)
-    ?? POKEMON.find((pokemon) => pokemon.slug === 'charizard')!
+    ?? buildPlaceholderPokemonModel(slug)
 }
 
 export function getAbilityBySlug(slug: string): AbilityModel {
