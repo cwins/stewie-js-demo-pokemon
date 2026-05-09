@@ -77,7 +77,7 @@ export function AbilitiesPage(): JSXElement {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Abilities | Stewie-JS Demo - Pokedex">
       <div class="page page--abilities">
         <section class="abilities-hero">
           <div class="abilities-hero__copy">

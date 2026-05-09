@@ -90,7 +90,7 @@ export function DiscoverPage(): JSXElement {
   }
 
   return (
-    <AppShell>
+    <AppShell title="Discover | Stewie-JS Demo - Pokedex">
       <div class="page page--discover">
         <section class="discover-hero">
           <div class="discover-hero__copy">

@@ -14,13 +14,19 @@ import type {
 import { rememberAbilityTransition, rememberCardTransition } from '../state/app-state.js'
 import { TopNav } from './top-nav.js'
 
-export function AppShell({ children }: { children: JSXElement }): JSXElement {
+export function AppShell({ children, title }: { children: JSXElement; title?: string }): JSXElement {
   const location = useLocation()
 
   effect(() => {
     void location.pathname
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    }
+  })
+
+  effect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = title ?? 'Stewie-JS Demo - Pokedex'
     }
   })
 

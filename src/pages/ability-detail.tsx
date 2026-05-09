@@ -26,7 +26,7 @@ export function AbilityDetailPage(): JSXElement {
   const relatedAbilities = getRelatedAbilities(ability)
 
   return (
-    <AppShell>
+    <AppShell title={`${ability.name} Ability | Stewie-JS Demo - Pokedex`}>
       <div class="page page--ability-detail">
         <AbilityHero ability={ability} onBack={() => void router.navigate('/abilities')} />
 

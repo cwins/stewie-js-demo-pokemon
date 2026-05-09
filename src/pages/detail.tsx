@@ -37,7 +37,7 @@ export function DetailPage(): JSXElement {
   })
 
   return (
-    <AppShell>
+    <AppShell title={`${pokemon.name} | Stewie-JS Demo - Pokedex`}>
       <div class="page page--detail">
         <section class="detail-hero" style={`--accent:${pokemon.accent}; --glow:${pokemon.glow};`}>
           <div class="detail-hero__copy">
